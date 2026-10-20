@@ -1,0 +1,1 @@
+{% load tracker_tags %}<div class="summary">{% for value,label in statuses %}<div class="summary-card"><span>{{ label }}</span><b>{{ counts|get_item:value }}</b></div>{% endfor %}</div>

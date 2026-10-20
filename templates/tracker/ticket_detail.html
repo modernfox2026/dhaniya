@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static tracker_tags %}
+
+{% block title %}{{ ticket.ticket_number }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'tracker/timeline.css' %}">
+
+<header class="topbar">
+  <div>
+    <p class="eyebrow">Ticket detail</p>
+    <h1>{{ ticket.ticket_number }}</h1>
+    <p>{{ ticket.title }}</p>
+  </div>
+  <div class="header-actions">
+    <a class="secondary" href="{% url 'backlog' %}">Back to Backlog</a>
+    <a class="primary" href="{% url 'ticket_edit' ticket.pk %}">Edit Ticket</a>
+  </div>
+</header>
+
+<section class="content detail-grid">
+  <article class="panel ticket-overview">
+    <div class="detail-title">
+      <div class="detail-badges">
+        <span class="status-badge {{ ticket.status|status_class }}">{{ ticket.get_status_display }}</span>
+        <span class="priority-badge {{ ticket.priority|priority_class }}">{{ ticket.priority }}</span>
+      </div>
+      <h2>{{ ticket.title }}</h2>
+    </div>
+
+    <p class="description">{{ ticket.description|linebreaksbr }}</p>
+
+    <dl>
+      <div><dt>Area</dt><dd>{{ ticket.area|default:'Other' }}</dd></div>
+      <div><dt>Submitted by</dt><dd>{{ ticket.submitted_by }}</dd></div>
+      <div><dt>Assigned to</dt><dd>{{ ticket.assigned_to|default:'Unassigned' }}</dd></div>
+      <div><dt>Due date</dt><dd>{{ ticket.due_date|default:'Not set' }}</dd></div>
+      <div><dt>Submitted</dt><dd>{{ ticket.submitted_at }}</dd></div>
+      <div><dt>Last updated</dt><dd>{{ ticket.updated_at }}</dd></div>
+    </dl>
+  </article>
+
+  <aside class="panel comments-panel">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Collaboration</p>
+        <h2>Comments</h2>
+      </div>
+      <span class="section-count">{{ ticket.comments.count }}</span>
+    </div>
+
+    <form method="post" class="comment-form">
+      {% csrf_token %}
+      {{ comment_form.text }}
+      <button class="primary">Add Comment</button>
+    </form>
+
+    <div class="comment-list">
+      {% for comment in ticket.comments.all %}
+      <article class="comment-card">
+        <div class="comment-avatar">{{ comment.created_by.username|slice:':1'|upper }}</div>
+        <div class="comment-body">
+          <header>
+            <b>{{ comment.created_by.get_full_name|default:comment.created_by.username }}</b>
+            <time>{{ comment.created_at }}</time>
+          </header>
+          <p>{{ comment.text|linebreaksbr }}</p>
+        </div>
+      </article>
+      {% empty %}
+      <div class="timeline-empty compact">
+        <b>No comments yet</b>
+        <p>Add implementation notes, test results, or legacy references.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <article class="panel full history-panel">
+    <div class="section-heading history-heading">
+      <div>
+        <p class="eyebrow">Audit trail</p>
+        <h2>Ticket activity</h2>
+        <p class="history-description">A chronological record of work, status changes, and collaboration.</p>
+      </div>
+      <span class="section-count">{{ ticket.history.count }}</span>
+    </div>
+
+    <div class="activity-timeline">
+      {% for item in ticket.history.all %}
+      <article class="timeline-event timeline-event--{{ item.change_type|lower }}">
+        <div class="timeline-rail" aria-hidden="true">
+          <span class="timeline-icon">
+            {% if item.change_type == 'Created' %}＋
+            {% elif item.change_type == 'StatusChanged' %}↻
+            {% elif item.change_type == 'CommentAdded' %}✎
+            {% elif item.change_type == 'Updated' %}✓
+            {% else %}•{% endif %}
+          </span>
+        </div>
+
+        <div class="timeline-card">
+          <header class="timeline-card-header">
+            <div>
+              <span class="event-type">{{ item.change_type }}</span>
+              <h3>
+                {% if item.change_type == 'Created' %}Ticket created
+                {% elif item.change_type == 'StatusChanged' %}Workflow status changed
+                {% elif item.change_type == 'CommentAdded' %}Comment added
+                {% elif item.change_type == 'Updated' %}Ticket details updated
+                {% else %}{{ item.change_type }}{% endif %}
+              </h3>
+            </div>
+            <time datetime="{{ item.changed_at|date:'c' }}">{{ item.changed_at|date:'M j, Y' }}<span>{{ item.changed_at|date:'g:i A' }}</span></time>
+          </header>
+
+          <div class="timeline-actor">
+            <span class="actor-avatar">{{ item.changed_by.username|slice:':1'|upper }}</span>
+            <span>Changed by <b>{{ item.changed_by.get_full_name|default:item.changed_by.username }}</b></span>
+          </div>
+
+          {% if item.change_type == 'StatusChanged' %}
+          <div class="status-transition">
+            <span class="transition-value transition-from">{{ item.old_value|default:'Unknown' }}</span>
+            <span class="transition-arrow" aria-label="changed to">→</span>
+            <span class="transition-value transition-to">{{ item.new_value|default:'Unknown' }}</span>
+          </div>
+          {% elif item.change_type == 'CommentAdded' and item.new_value %}
+          <blockquote class="timeline-quote">{{ item.new_value|linebreaksbr }}</blockquote>
+          {% elif item.old_value or item.new_value %}
+          <div class="change-summary">
+            {% if item.old_value %}<div><span>Previous</span><p>{{ item.old_value }}</p></div>{% endif %}
+            {% if item.new_value %}<div><span>New</span><p>{{ item.new_value }}</p></div>{% endif %}
+          </div>
+          {% else %}
+          <p class="timeline-note">Ticket information was updated.</p>
+          {% endif %}
+        </div>
+      </article>
+      {% empty %}
+      <div class="timeline-empty">
+        <span class="timeline-empty-icon">⌁</span>
+        <b>No activity recorded yet</b>
+        <p>Ticket creation, edits, comments, and status changes will appear here.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+{% endblock %}
