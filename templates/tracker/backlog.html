@@ -1,1 +1,78 @@
-{% extends 'base.html' %}{% block title %}Backlog{% endblock %}{% block content %}<header class="topbar"><div><h1>Backlog</h1><p>All tickets, including work already in progress, ready to test, or completed.</p></div><a class="primary" href="{% url 'ticket_create' %}">New Ticket</a></header><section class="content">{% include 'tracker/summary.html' %}{% include 'tracker/filters.html' %}<div class="table-card"><div class="table-title"><b>All backlog tickets</b><small>Includes every workflow status.</small></div><div class="table-scroll"><table><thead><tr><th>Ticket</th><th>Status</th><th>Priority</th><th>Submitted by</th><th>Assigned to</th><th>Due</th></tr></thead><tbody>{% for ticket in tickets %}<tr><td><a href="{% url 'ticket_detail' ticket.pk %}"><b>{{ ticket.ticket_number }} · {{ ticket.title }}</b><small>{{ ticket.area|default:'Other' }}</small></a></td><td>{{ ticket.get_status_display }}</td><td>{{ ticket.priority }}</td><td>{{ ticket.submitted_by }}</td><td>{{ ticket.assigned_to|default:'Unassigned' }}</td><td>{{ ticket.due_date|default:'' }}</td></tr>{% empty %}<tr><td colspan="6">No tickets match the filters.</td></tr>{% endfor %}</tbody></table></div></div></section>{% endblock %}
+{% extends 'base.html' %}
+{% load tracker_tags %}
+{% block title %}Backlog{% endblock %}
+{% block content %}
+<header class="topbar">
+  <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
+  <div class="topbar-title">
+    <h1>Backlog</h1>
+    <p>Every ticket across all workflow stages. Select rows to update them in bulk.</p>
+  </div>
+  <div class="topbar-actions">
+    <a class="btn btn-outlined" href="{% url 'backlog_export' %}{% query request.GET %}" title="Download the filtered list as CSV"><span class="ms">download</span><span class="label">Export CSV</span></a>
+    <a class="btn btn-filled" href="{% url 'ticket_create' %}"><span class="ms">add</span><span class="label">New ticket</span></a>
+  </div>
+</header>
+<section class="content">
+  {% include 'tracker/_stats.html' %}
+  {% include 'tracker/filters.html' %}
+
+  <form method="post" action="{% url 'ticket_bulk' %}" class="card table-card" data-bulk>
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <div class="bulk-bar" role="region" aria-label="Bulk actions">
+      <b data-selected-count>0 selected</b>
+      <select name="status" aria-label="Set status"><option value="">Keep status</option>{% for value,label in statuses %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+      <select name="priority" aria-label="Set priority"><option value="">Keep priority</option>{% for value,label in priorities %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+      <select name="assigned_to" aria-label="Set assignee"><option value="">Keep assignee</option><option value="none">Unassign</option>{% for person in bulk_users %}<option value="{{ person.pk }}">{{ person|display_name }}</option>{% endfor %}</select>
+      <select name="area" aria-label="Set area"><option value="">Keep area</option>{% for item in areas %}<option value="{{ item.pk }}">{{ item.name }}</option>{% endfor %}</select>
+      <button class="btn btn-filled btn-sm"><span class="ms">check</span>Apply</button>
+      <button type="button" class="btn btn-text btn-sm" data-clear-selection>Cancel</button>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="check-cell"><input type="checkbox" class="check" data-select-all aria-label="Select all on this page"></th>
+            {% for key,label in sort_columns %}
+            <th><a href="{% sort_link request.GET sort key %}">{{ label }}{% if sort == key %}<span class="ms">arrow_upward</span>{% elif sort|slice:'1:' == key and sort|first == '-' %}<span class="ms">arrow_downward</span>{% endif %}</a></th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for ticket in tickets %}
+          <tr>
+            <td class="check-cell"><input type="checkbox" class="check" name="tickets" value="{{ ticket.pk }}" aria-label="Select {{ ticket.ticket_number }}"></td>
+            <td class="mono"><a href="{% url 'ticket_detail' ticket.pk %}">{{ ticket.ticket_number }}</a></td>
+            <td class="title-cell"><a href="{% url 'ticket_detail' ticket.pk %}"><b>{{ ticket.title }}</b></a><small>{{ ticket.area|default:'Other' }} · submitted by {{ ticket.submitted_by|display_name }}</small></td>
+            <td><span class="status-badge {{ ticket.status|status_class }}">{{ ticket.get_status_display }}</span></td>
+            <td><span class="priority-badge {{ ticket.priority|priority_class }}">{{ ticket.priority }}</span></td>
+            <td>{{ ticket.area|default:'Other' }}</td>
+            <td><span class="person"><span class="avatar sm {% if not ticket.assigned_to %}empty{% endif %}">{% if ticket.assigned_to %}{{ ticket.assigned_to|initials }}{% else %}<span class="ms sm">person</span>{% endif %}</span>{{ ticket.assigned_to|display_name }}</span></td>
+            <td>{% if ticket.due_date %}<span class="due-badge {{ ticket|due_state }}">{{ ticket.due_date|date:'M j, Y' }}</span>{% else %}<span class="muted">None</span>{% endif %}</td>
+            <td class="muted" title="{{ ticket.updated_at }}">{{ ticket.updated_at|timesince }} ago</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9"><div class="empty-state"><span class="ms">search</span><b>No tickets match these filters</b><span>Try clearing a filter or searching for something else.</span></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <span>{% if page.paginator.count %}{{ page.start_index }} to {{ page.end_index }} of {{ page.paginator.count }}{% else %}No results{% endif %}</span>
+      <div class="pages">
+        <label class="muted">Rows
+          <select onchange="location.href=this.value" aria-label="Rows per page">
+            <option value="{% query request.GET per_page='25' %}" {% if per_page == '25' %}selected{% endif %}>25</option>
+            <option value="{% query request.GET per_page='50' %}" {% if per_page == '50' %}selected{% endif %}>50</option>
+            <option value="{% query request.GET per_page='100' %}" {% if per_page == '100' %}selected{% endif %}>100</option>
+          </select>
+        </label>
+        {% if page.has_previous %}<a class="icon-btn sm" href="{% query request.GET page=page.previous_page_number %}" aria-label="Previous page"><span class="ms">chevron_left</span></a>{% else %}<span class="icon-btn sm" style="opacity:.35"><span class="ms">chevron_left</span></span>{% endif %}
+        <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a class="icon-btn sm" href="{% query request.GET page=page.next_page_number %}" aria-label="Next page"><span class="ms">chevron_right</span></a>{% else %}<span class="icon-btn sm" style="opacity:.35"><span class="ms">chevron_right</span></span>{% endif %}
+      </div>
+    </div>
+  </form>
+</section>
+{% endblock %}

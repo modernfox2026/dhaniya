@@ -1,0 +1,9 @@
+{% load tracker_tags %}
+<div class="stat-grid">
+  {% for value,label in statuses %}
+  <a class="stat-card {% if request.GET.status == value %}active{% endif %}" href="{% toggle request.GET 'status' value %}">
+    <span class="stat-icon {{ value|status_class }}"><span class="ms">{{ value|status_icon }}</span></span>
+    <div><span class="label">{{ label }}</span><b>{{ counts|get_item:value }}</b></div>
+  </a>
+  {% endfor %}
+</div>

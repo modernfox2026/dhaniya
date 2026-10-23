@@ -1,3 +1,94 @@
-{% load static %}<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{% block title %}Modernization Tracker{% endblock %}</title><link rel="stylesheet" href="{% static 'tracker/app.css' %}"></head><body>
-{% if user.is_authenticated %}<aside class="sidebar"><div class="brand"><span class="logo">M</span><div><b>Modernization</b><small>Project Tracker</small></div></div><nav><a href="{% url 'board' %}" class="{% if request.resolver_match.url_name == 'board' %}active{% endif %}">Work Board</a><a href="{% url 'backlog' %}" class="{% if request.resolver_match.url_name == 'backlog' %}active{% endif %}">Backlog</a>{% if user.is_staff %}<a href="{% url 'users' %}" class="{% if 'user' in request.resolver_match.url_name %}active{% endif %}">User Administration</a>{% endif %}</nav><div class="account"><b>{{ user.get_full_name|default:user.username }}</b><small>{% if user.is_staff %}Admin{% else %}Member{% endif %}</small><a href="{% url 'logout' %}">Sign out</a></div></aside>{% endif %}
-<main class="{% if user.is_authenticated %}shell{% endif %}">{% if messages %}<div class="messages">{% for message in messages %}<div>{{ message }}</div>{% endfor %}</div>{% endif %}{% block content %}{% endblock %}</main></body></html>
+{% load static tracker_tags %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="theme-color" content="#4c662b">
+  <title>{% block title %}Modernization Tracker{% endblock %} · Modernization Tracker</title>
+  <script>try{var t=localStorage.getItem('tracker-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+  <link rel="preload" href="{% static 'tracker/fonts/material-symbols-rounded.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'tracker/app.css' %}">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%234c662b'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='17' fill='white' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+{% if user.is_authenticated %}
+{% with url_name=request.resolver_match.url_name %}
+<aside class="drawer" aria-label="Main navigation">
+  <div class="brand">
+    <span class="brand-mark"><span class="ms fill">change_circle</span></span>
+    <div><b>Modernization</b><small>FoxPro to .NET tracker</small></div>
+  </div>
+  <a class="fab" href="{% url 'ticket_create' %}" data-route="ticket_create"><span class="ms">add</span>New ticket</a>
+  <nav>
+    <a class="nav-item {% if url_name == 'my_work' %}active{% endif %}" href="{% url 'my_work' %}" data-route="my_work">
+      <span class="ms">home</span>My work{% if nav_my_open %}<span class="badge">{{ nav_my_open }}</span>{% endif %}
+    </a>
+    <a class="nav-item {% if url_name == 'board' %}active{% endif %}" href="{% url 'board' %}" data-route="board">
+      <span class="ms">view_kanban</span>Work board
+    </a>
+    <a class="nav-item {% if url_name == 'backlog' %}active{% endif %}" href="{% url 'backlog' %}" data-route="backlog">
+      <span class="ms">list_alt</span>Backlog{% if nav_overdue %}<span class="badge alert" title="{{ nav_overdue }} overdue">{{ nav_overdue }}</span>{% endif %}
+    </a>
+    <a class="nav-item {% if url_name == 'insights' %}active{% endif %}" href="{% url 'insights' %}" data-route="insights">
+      <span class="ms">insights</span>Insights
+    </a>
+    {% if user.is_staff %}
+    <div class="nav-label">Administration</div>
+    <a class="nav-item {% if url_name == 'users' or url_name == 'user_create' or url_name == 'user_reset_password' %}active{% endif %}" href="{% url 'users' %}" data-route="users">
+      <span class="ms">group</span>Users
+    </a>
+    {% endif %}
+  </nav>
+  <div class="drawer-footer">
+    <div class="account">
+      <span class="avatar lg">{{ user|initials }}</span>
+      <div><b>{{ user|display_name }}</b><small>{% if user.is_staff %}Admin{% else %}Member{% endif %} · @{{ user.username }}</small></div>
+    </div>
+    <div class="drawer-tools">
+      <button type="button" class="icon-btn" data-theme-toggle title="Toggle dark mode" aria-label="Toggle dark mode"><span class="ms">dark_mode</span></button>
+      <button type="button" class="icon-btn" data-shortcuts title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"><span class="ms">keyboard</span></button>
+      <a class="btn btn-text" href="{% url 'logout' %}" style="margin-left:auto"><span class="ms">logout</span>Sign out</a>
+    </div>
+  </div>
+</aside>
+<div class="scrim" data-drawer-toggle></div>
+{% endwith %}
+{% endif %}
+
+<main class="{% if user.is_authenticated %}shell{% endif %}">
+  {% block content %}{% endblock %}
+</main>
+
+<div class="snackbars" aria-live="polite">
+  {% for message in messages %}
+  <div class="snackbar {{ message.tags }}" role="status">
+    <span class="ms">{% if message.level_tag == 'error' %}warning{% else %}check_circle{% endif %}</span>
+    <span class="text">{{ message }}</span>
+    <button type="button" class="icon-btn sm" data-dismiss aria-label="Dismiss"><span class="ms">close</span></button>
+  </div>
+  {% endfor %}
+</div>
+
+{% if user.is_authenticated %}
+<dialog id="shortcuts" aria-labelledby="shortcuts-title">
+  <h2 id="shortcuts-title"><span class="ms">keyboard</span>Keyboard shortcuts</h2>
+  <dl class="shortcut-list">
+    <div><dt>Search tickets</dt><dd><kbd>/</kbd></dd></div>
+    <div><dt>New ticket</dt><dd><kbd>n</kbd></dd></div>
+    <div><dt>Go to my work</dt><dd><kbd>g</kbd><kbd>m</kbd></dd></div>
+    <div><dt>Go to work board</dt><dd><kbd>g</kbd><kbd>b</kbd></dd></div>
+    <div><dt>Go to backlog</dt><dd><kbd>g</kbd><kbd>l</kbd></dd></div>
+    <div><dt>Go to insights</dt><dd><kbd>g</kbd><kbd>i</kbd></dd></div>
+    <div><dt>Edit open ticket</dt><dd><kbd>e</kbd></dd></div>
+    <div><dt>Assign open ticket to me</dt><dd><kbd>a</kbd></dd></div>
+    <div><dt>Submit comment or form</dt><dd><kbd>Ctrl</kbd><kbd>Enter</kbd></dd></div>
+    <div><dt>Select a range of rows</dt><dd><kbd>Shift</kbd><kbd>Click</kbd></dd></div>
+    <div><dt>Show this help</dt><dd><kbd>?</kbd></dd></div>
+  </dl>
+  <form method="dialog" class="dialog-actions"><button class="btn btn-text">Close</button></form>
+</dialog>
+{% endif %}
+<script src="{% static 'tracker/app.js' %}" defer></script>
+</body>
+</html>

@@ -1,1 +1,60 @@
-{% extends 'base.html' %}{% block title %}Work Board{% endblock %}{% block content %}<header class="topbar"><div><h1>Modernization Work Board</h1><p>Visual FoxPro to .NET implementation tracking</p></div><a class="primary" href="{% url 'ticket_create' %}">New Ticket</a></header><section class="content">{% include 'tracker/summary.html' %}{% include 'tracker/filters.html' %}<div class="board">{% for value,label,items in columns %}<section class="column"><header><b>{{ label }}</b><span>{{ items|length }}</span></header>{% for ticket in items %}<article class="ticket"><a href="{% url 'ticket_detail' ticket.pk %}"><small>{{ ticket.ticket_number }} · {{ ticket.area|default:'Other' }}</small><h3>{{ ticket.title }}</h3></a><p>{{ ticket.description|truncatechars:120 }}</p><div class="ticket-meta"><span>{{ ticket.assigned_to|default:'Unassigned' }}</span><span>{{ ticket.due_date|default:'No due date' }}</span></div><form method="post" action="{% url 'ticket_move' ticket.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><select name="status" onchange="this.form.submit()">{% for option,label2 in statuses %}<option value="{{ option }}" {% if ticket.status == option %}selected{% endif %}>{{ label2 }}</option>{% endfor %}</select></form></article>{% empty %}<p class="empty">No matching tickets.</p>{% endfor %}</section>{% endfor %}</div></section>{% endblock %}
+{% extends 'base.html' %}
+{% load tracker_tags %}
+{% block title %}Work Board{% endblock %}
+{% block content %}
+<header class="topbar">
+  <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
+  <div class="topbar-title">
+    <h1>Work board</h1>
+    <p>Drag cards between columns to update their status.</p>
+  </div>
+  <div class="topbar-actions">
+    <a class="btn btn-filled" href="{% url 'ticket_create' %}"><span class="ms">add</span><span class="label">New ticket</span></a>
+  </div>
+</header>
+<section class="content">
+  {% include 'tracker/_stats.html' %}
+  {% include 'tracker/filters.html' %}
+  <div class="board" data-board>
+    {% for column in columns %}
+    <section class="column" data-status="{{ column.value }}" data-hidden="{{ column.hidden }}" aria-label="{{ column.label }}">
+      <header class="column-head">
+        <span class="dot {{ column.value }}"></span>
+        <b>{{ column.label }}</b>
+        <span class="badge" data-count>{{ column.items|length|add:column.hidden }}</span>
+      </header>
+      <div class="column-list">
+        {% for ticket in column.items %}
+        <article class="ticket prio-{{ ticket.priority }}" draggable="true" data-number="{{ ticket.ticket_number }}" data-current="{{ ticket.status }}" data-move-url="{% url 'ticket_move' ticket.pk %}">
+          <div class="ticket-top">
+            <span class="ticket-number">{{ ticket.ticket_number }}</span>
+            <form method="post" action="{% url 'ticket_move' ticket.pk %}" class="ticket-move">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <span class="icon-btn sm" title="Move to..."><span class="ms">swap_horiz</span></span>
+              <select name="status" aria-label="Move {{ ticket.ticket_number }}">
+                {% for option,label2 in statuses %}<option value="{{ option }}" {% if ticket.status == option %}selected{% endif %}>{{ label2 }}</option>{% endfor %}
+              </select>
+              <noscript><button class="btn btn-text btn-sm">Move</button></noscript>
+            </form>
+          </div>
+          <h3><a href="{% url 'ticket_detail' ticket.pk %}" draggable="false">{{ ticket.title }}</a></h3>
+          {% if ticket.description %}<p>{{ ticket.description|truncatechars:140 }}</p>{% endif %}
+          <div class="ticket-meta">
+            <span class="priority-badge {{ ticket.priority|priority_class }}">{{ ticket.priority }}</span>
+            {% if ticket.due_date %}<span class="due-badge {{ ticket|due_state }}"><span class="ms">schedule</span>{{ ticket.due_date|date:'M j' }}</span>{% endif %}
+            <span class="tag">{{ ticket.area|default:'Other' }}</span>
+            <span class="avatar sm {% if not ticket.assigned_to %}empty{% endif %}" title="{{ ticket.assigned_to|display_name }}">{% if ticket.assigned_to %}{{ ticket.assigned_to|initials }}{% else %}<span class="ms sm">person</span>{% endif %}</span>
+          </div>
+        </article>
+        {% endfor %}
+        <p class="empty" {% if column.items %}hidden{% endif %}>Drop tickets here</p>
+      </div>
+      {% if column.hidden %}
+      <a class="column-more" href="{% url 'backlog' %}{% query request.GET status=column.value sort='-updated' %}">+{{ column.hidden }} more in backlog</a>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

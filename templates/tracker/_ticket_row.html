@@ -1,0 +1,9 @@
+{% load tracker_tags %}
+<a class="list-row" href="{% url 'ticket_detail' ticket.pk %}">
+  <span class="priority-badge {{ ticket.priority|priority_class }}" title="{{ ticket.priority }} priority">{{ ticket.priority|slice:':1' }}</span>
+  <div class="grow"><b>{{ ticket.title }}</b><small>{{ ticket.ticket_number }} · {{ ticket.area|default:'Other' }}{% if show_assignee %} · {{ ticket.assigned_to|display_name }}{% endif %}</small></div>
+  <div class="end">
+    {% if show_status %}<span class="status-badge {{ ticket.status|status_class }}">{{ ticket.get_status_display }}</span>{% endif %}
+    {% if ticket.due_date %}<span class="due-badge {{ ticket|due_state }}">{{ ticket.due_date|date:'M j' }}</span>{% endif %}
+  </div>
+</a>

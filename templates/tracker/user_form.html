@@ -1,1 +1,20 @@
-{% extends 'base.html' %}{% block title %}{{ title }}{% endblock %}{% block content %}<header class="topbar"><div><h1>{{ title }}</h1></div></header><section class="content"><form method="post" class="panel form-panel">{% csrf_token %}{{ form.non_field_errors }}{% for field in form %}<label>{{ field.label }}{{ field }}{{ field.errors }}{% if field.help_text %}<small>{{ field.help_text|safe }}</small>{% endif %}</label>{% endfor %}<div class="actions"><button class="primary">Save</button><a href="{% url 'users' %}">Cancel</a></div></form></section>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<header class="topbar">
+  <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
+  <a class="icon-btn" href="{% url 'users' %}" aria-label="Back to users"><span class="ms">arrow_back</span></a>
+  <div class="topbar-title"><h1>{{ title }}</h1></div>
+</header>
+<section class="content">
+  <form method="post" class="card form-card" style="max-width:560px">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}{% include 'tracker/_field.html' %}{% endfor %}
+    <div class="actions">
+      <button class="btn btn-filled"><span class="ms">check</span>Save</button>
+      <a class="btn btn-text" href="{% url 'users' %}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

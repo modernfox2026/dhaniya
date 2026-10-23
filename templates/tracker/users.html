@@ -1,1 +1,48 @@
-{% extends 'base.html' %}{% block title %}User Administration{% endblock %}{% block content %}<header class="topbar"><div><h1>User Administration</h1><p>Only administrators can create accounts and reset another member's password.</p></div><a class="primary" href="{% url 'user_create' %}">Create Account</a></header><section class="content user-list">{% for person in users %}<article class="panel user-row"><div><b>{{ person.get_full_name|default:person.username }}</b><p>@{{ person.username }} · {% if person.is_staff %}Admin{% else %}Member{% endif %} · {% if person.is_active %}Active{% else %}Disabled{% endif %}</p></div>{% if person.pk != user.pk %}<a href="{% url 'user_reset_password' person.pk %}">Reset Password</a>{% endif %}</article>{% endfor %}</section>{% endblock %}
+{% extends 'base.html' %}
+{% load tracker_tags %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<header class="topbar">
+  <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
+  <div class="topbar-title">
+    <h1>Users</h1>
+    <p>Only administrators can create accounts, change roles, and reset another member's password.</p>
+  </div>
+  <div class="topbar-actions">
+    <a class="btn btn-filled" href="{% url 'user_create' %}"><span class="ms">person_add</span><span class="label">Create account</span></a>
+  </div>
+</header>
+<section class="content">
+  <div class="card table-card">
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Person</th><th>Role</th><th>Status</th><th>Open tickets</th><th>Last sign in</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody>
+          {% for person in users %}
+          <tr class="{% if not person.is_active %}inactive{% endif %}">
+            <td><div class="user-cell"><span class="avatar">{{ person|initials }}</span><div><b>{{ person|display_name }}</b><small>@{{ person.username }}</small></div></div></td>
+            <td>{% if person.is_staff %}<span class="status-badge status-completed"><span class="ms">admin_panel_settings</span>Admin</span>{% else %}<span class="status-badge status-backlog">Member</span>{% endif %}</td>
+            <td>{% if person.is_active %}Active{% else %}<span class="due-badge overdue">Disabled</span>{% endif %}</td>
+            <td>{% if person.open_count %}<a class="btn btn-text btn-sm" href="{% url 'backlog' %}?assignee={{ person.pk }}&open=1">{{ person.open_count }}</a>{% else %}<span class="muted">0</span>{% endif %}</td>
+            <td class="muted">{% if person.last_login %}{{ person.last_login|timesince }} ago{% else %}Never{% endif %}</td>
+            <td>
+              {% if person.pk != user.pk %}
+              <div class="row-actions">
+                <a class="icon-btn" href="{% url 'user_reset_password' person.pk %}" title="Reset password" aria-label="Reset password for {{ person.username }}"><span class="ms">lock_reset</span></a>
+                <form method="post" action="{% url 'user_toggle_admin' person.pk %}" data-confirm="{% if person.is_staff %}Remove admin rights from {{ person.username }}?{% else %}Make {{ person.username }} an admin?{% endif %}">
+                  {% csrf_token %}<button class="icon-btn" title="{% if person.is_staff %}Make member{% else %}Make admin{% endif %}" aria-label="Change role"><span class="ms">admin_panel_settings</span></button>
+                </form>
+                <form method="post" action="{% url 'user_toggle_active' person.pk %}" data-confirm="{% if person.is_active %}Disable {{ person.username }}? They will not be able to sign in.{% else %}Enable {{ person.username }}?{% endif %}">
+                  {% csrf_token %}<button class="icon-btn" title="{% if person.is_active %}Disable account{% else %}Enable account{% endif %}" aria-label="Toggle account"><span class="ms">{% if person.is_active %}block{% else %}how_to_reg{% endif %}</span></button>
+                </form>
+              </div>
+              {% else %}<div class="row-actions muted">You</div>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
