@@ -1,150 +1,122 @@
 {% extends 'base.html' %}
-{% load static tracker_tags %}
-
+{% load tracker_tags %}
 {% block title %}{{ ticket.ticket_number }}{% endblock %}
-
 {% block content %}
-<link rel="stylesheet" href="{% static 'tracker/timeline.css' %}">
-
 <header class="topbar">
-  <div>
-    <p class="eyebrow">Ticket detail</p>
-    <h1>{{ ticket.ticket_number }}</h1>
-    <p>{{ ticket.title }}</p>
+  <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
+  <a class="icon-btn" href="{% url 'backlog' %}" title="Back to backlog" aria-label="Back to backlog"><span class="ms">arrow_back</span></a>
+  <div class="topbar-title">
+    <p class="eyebrow">{{ ticket.ticket_number }}
+      <button type="button" class="icon-btn sm" data-copy="{{ ticket.ticket_number }}" title="Copy ticket number" aria-label="Copy ticket number" style="vertical-align:middle;width:24px;height:24px"><span class="ms sm">content_copy</span></button>
+    </p>
+    <h1>{{ ticket.title }}</h1>
   </div>
-  <div class="header-actions">
-    <a class="secondary" href="{% url 'backlog' %}">Back to Backlog</a>
-    <a class="primary" href="{% url 'ticket_edit' ticket.pk %}">Edit Ticket</a>
+  <div class="topbar-actions">
+    <a class="btn btn-outlined" href="{% url 'ticket_create' %}?from={{ ticket.pk }}" title="Create a new ticket from this one"><span class="ms">content_copy</span><span class="label">Duplicate</span></a>
+    <a class="btn btn-filled" href="{% url 'ticket_edit' ticket.pk %}" data-shortcut="edit" title="Edit (e)"><span class="ms">edit</span><span class="label">Edit</span></a>
   </div>
 </header>
 
 <section class="content detail-grid">
-  <article class="panel ticket-overview">
-    <div class="detail-title">
+  <div class="detail-main">
+    <article class="card card-pad">
       <div class="detail-badges">
-        <span class="status-badge {{ ticket.status|status_class }}">{{ ticket.get_status_display }}</span>
-        <span class="priority-badge {{ ticket.priority|priority_class }}">{{ ticket.priority }}</span>
+        <span class="status-badge {{ ticket.status|status_class }}"><span class="ms">{{ ticket.status|status_icon }}</span>{{ ticket.get_status_display }}</span>
+        <span class="priority-badge {{ ticket.priority|priority_class }}"><span class="ms">flag</span>{{ ticket.priority }}</span>
+        {% with state=ticket|due_state %}{% if state == 'overdue' %}<span class="due-badge overdue"><span class="ms">event_busy</span>Overdue</span>{% elif state == 'soon' %}<span class="due-badge soon"><span class="ms">schedule</span>Due soon</span>{% endif %}{% endwith %}
       </div>
-      <h2>{{ ticket.title }}</h2>
-    </div>
+      <div class="detail-title"><h2>{{ ticket.title }}</h2></div>
+      <div class="description">{{ ticket.description }}</div>
+    </article>
 
-    <p class="description">{{ ticket.description|linebreaksbr }}</p>
-
-    <dl>
-      <div><dt>Area</dt><dd>{{ ticket.area|default:'Other' }}</dd></div>
-      <div><dt>Submitted by</dt><dd>{{ ticket.submitted_by }}</dd></div>
-      <div><dt>Assigned to</dt><dd>{{ ticket.assigned_to|default:'Unassigned' }}</dd></div>
-      <div><dt>Due date</dt><dd>{{ ticket.due_date|default:'Not set' }}</dd></div>
-      <div><dt>Submitted</dt><dd>{{ ticket.submitted_at }}</dd></div>
-      <div><dt>Last updated</dt><dd>{{ ticket.updated_at }}</dd></div>
-    </dl>
-  </article>
-
-  <aside class="panel comments-panel">
-    <div class="section-heading">
-      <div>
-        <p class="eyebrow">Collaboration</p>
-        <h2>Comments</h2>
+    <article class="card">
+      <div class="card-head"><h2><span class="ms">chat</span>Comments</h2><span class="badge">{{ comments|length }}</span></div>
+      <div class="card-pad">
+        <form method="post" class="comment-form">
+          {% csrf_token %}
+          {{ comment_form.text }}
+          {{ comment_form.text.errors }}
+          <div class="row"><span><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to post</span><button class="btn btn-filled btn-sm"><span class="ms">chat</span>Add comment</button></div>
+        </form>
+        {% for comment in comments %}
+        <article class="comment-card">
+          <span class="avatar">{{ comment.created_by|initials }}</span>
+          <div>
+            <header><b>{{ comment.created_by|display_name }}</b><time datetime="{{ comment.created_at|date:'c' }}" title="{{ comment.created_at }}">{{ comment.created_at|timesince }} ago</time></header>
+            <p>{{ comment.text }}</p>
+          </div>
+        </article>
+        {% empty %}
+        <div class="empty-state"><span class="ms">chat</span><b>No comments yet</b><span>Add implementation notes, test results, or legacy references.</span></div>
+        {% endfor %}
       </div>
-      <span class="section-count">{{ ticket.comments.count }}</span>
-    </div>
+    </article>
 
-    <form method="post" class="comment-form">
-      {% csrf_token %}
-      {{ comment_form.text }}
-      <button class="primary">Add Comment</button>
-    </form>
-
-    <div class="comment-list">
-      {% for comment in ticket.comments.all %}
-      <article class="comment-card">
-        <div class="comment-avatar">{{ comment.created_by.username|slice:':1'|upper }}</div>
-        <div class="comment-body">
-          <header>
-            <b>{{ comment.created_by.get_full_name|default:comment.created_by.username }}</b>
-            <time>{{ comment.created_at }}</time>
-          </header>
-          <p>{{ comment.text|linebreaksbr }}</p>
-        </div>
-      </article>
-      {% empty %}
-      <div class="timeline-empty compact">
-        <b>No comments yet</b>
-        <p>Add implementation notes, test results, or legacy references.</p>
-      </div>
-      {% endfor %}
-    </div>
-  </aside>
-
-  <article class="panel full history-panel">
-    <div class="section-heading history-heading">
-      <div>
-        <p class="eyebrow">Audit trail</p>
-        <h2>Ticket activity</h2>
-        <p class="history-description">A chronological record of work, status changes, and collaboration.</p>
-      </div>
-      <span class="section-count">{{ ticket.history.count }}</span>
-    </div>
-
-    <div class="activity-timeline">
-      {% for item in ticket.history.all %}
-      <article class="timeline-event timeline-event--{{ item.change_type|lower }}">
-        <div class="timeline-rail" aria-hidden="true">
-          <span class="timeline-icon">
-            {% if item.change_type == 'Created' %}＋
-            {% elif item.change_type == 'StatusChanged' %}↻
-            {% elif item.change_type == 'CommentAdded' %}✎
-            {% elif item.change_type == 'Updated' %}✓
-            {% else %}•{% endif %}
-          </span>
-        </div>
-
-        <div class="timeline-card">
-          <header class="timeline-card-header">
-            <div>
-              <span class="event-type">{{ item.change_type }}</span>
-              <h3>
-                {% if item.change_type == 'Created' %}Ticket created
-                {% elif item.change_type == 'StatusChanged' %}Workflow status changed
-                {% elif item.change_type == 'CommentAdded' %}Comment added
-                {% elif item.change_type == 'Updated' %}Ticket details updated
-                {% else %}{{ item.change_type }}{% endif %}
-              </h3>
+    <article class="card">
+      <div class="card-head"><h2><span class="ms">history</span>Activity</h2><span class="badge">{{ history|length }}</span></div>
+      <div class="card-pad timeline">
+        {% for item in history %}
+        <article class="timeline-event timeline-event--{{ item.change_type|lower }}">
+          <span class="timeline-icon"><span class="ms">{% if item.change_type == 'Created' %}add{% elif item.change_type == 'StatusChanged' %}swap_horiz{% elif item.change_type == 'CommentAdded' %}chat{% else %}edit{% endif %}</span></span>
+          <div class="timeline-body">
+            <header>
+              <div><b>{{ item.changed_by|display_name }}</b>
+                <span>{% if item.change_type == 'Created' %}created this ticket{% elif item.change_type == 'StatusChanged' %}changed the status{% elif item.change_type == 'CommentAdded' %}commented{% else %}updated the ticket{% endif %}</span>
+              </div>
+              <time datetime="{{ item.changed_at|date:'c' }}" title="{{ item.changed_at }}">{{ item.changed_at|date:'M j, Y g:i A' }}</time>
+            </header>
+            {% if item.change_type == 'StatusChanged' %}
+            <div class="transition">
+              <span class="status-badge {{ item.old_value|status_class }}">{{ item.old_value|status_label|default:'Unknown' }}</span>
+              <span class="ms sm muted">arrow_forward</span>
+              <span class="status-badge {{ item.new_value|status_class }}">{{ item.new_value|status_label|default:'Unknown' }}</span>
             </div>
-            <time datetime="{{ item.changed_at|date:'c' }}">{{ item.changed_at|date:'M j, Y' }}<span>{{ item.changed_at|date:'g:i A' }}</span></time>
-          </header>
-
-          <div class="timeline-actor">
-            <span class="actor-avatar">{{ item.changed_by.username|slice:':1'|upper }}</span>
-            <span>Changed by <b>{{ item.changed_by.get_full_name|default:item.changed_by.username }}</b></span>
+            {% elif item.change_type == 'CommentAdded' and item.new_value %}
+            <blockquote class="timeline-quote">{{ item.new_value|truncatechars:400 }}</blockquote>
+            {% elif item.change_type == 'Updated' and item.old_value %}
+            <div class="change-line"><del>{{ item.old_value }}</del> <span class="ms sm">arrow_forward</span> <ins>{{ item.new_value }}</ins></div>
+            {% endif %}
           </div>
-
-          {% if item.change_type == 'StatusChanged' %}
-          <div class="status-transition">
-            <span class="transition-value transition-from">{{ item.old_value|default:'Unknown' }}</span>
-            <span class="transition-arrow" aria-label="changed to">→</span>
-            <span class="transition-value transition-to">{{ item.new_value|default:'Unknown' }}</span>
-          </div>
-          {% elif item.change_type == 'CommentAdded' and item.new_value %}
-          <blockquote class="timeline-quote">{{ item.new_value|linebreaksbr }}</blockquote>
-          {% elif item.old_value or item.new_value %}
-          <div class="change-summary">
-            {% if item.old_value %}<div><span>Previous</span><p>{{ item.old_value }}</p></div>{% endif %}
-            {% if item.new_value %}<div><span>New</span><p>{{ item.new_value }}</p></div>{% endif %}
-          </div>
-          {% else %}
-          <p class="timeline-note">Ticket information was updated.</p>
-          {% endif %}
-        </div>
-      </article>
-      {% empty %}
-      <div class="timeline-empty">
-        <span class="timeline-empty-icon">⌁</span>
-        <b>No activity recorded yet</b>
-        <p>Ticket creation, edits, comments, and status changes will appear here.</p>
+        </article>
+        {% empty %}
+        <div class="empty-state"><span class="ms">history</span><b>No activity recorded yet</b><span>Edits, comments, and status changes will appear here.</span></div>
+        {% endfor %}
       </div>
-      {% endfor %}
-    </div>
-  </article>
+    </article>
+  </div>
+
+  <aside class="detail-side">
+    <section class="card card-pad">
+      <p class="eyebrow">Workflow status</p>
+      <form method="post" action="{% url 'ticket_move' ticket.pk %}" class="segmented">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        {% for value,label in statuses %}
+        <button name="status" value="{{ value }}" class="{% if ticket.status == value %}current{% endif %}" {% if ticket.status == value %}type="button" aria-pressed="true"{% endif %}><span class="ms">{{ value|status_icon }}</span>{{ label }}</button>
+        {% endfor %}
+      </form>
+      <div class="side-actions">
+        {% if ticket.assigned_to_id != user.pk %}
+        <form method="post" action="{% url 'ticket_assign_me' ticket.pk %}" data-shortcut="assign">
+          {% csrf_token %}
+          <button class="btn btn-tonal"><span class="ms">assignment_ind</span>Assign to me</button>
+        </form>
+        {% endif %}
+      </div>
+    </section>
+    <section class="card card-pad">
+      <p class="eyebrow">Details</p>
+      <dl class="props">
+        <div><dt><span class="ms">person</span>Assignee</dt><dd><span class="person">{% if ticket.assigned_to %}<span class="avatar sm">{{ ticket.assigned_to|initials }}</span>{% endif %}{{ ticket.assigned_to|display_name }}</span></dd></div>
+        <div><dt><span class="ms">label</span>Area</dt><dd><a href="{% url 'backlog' %}?area={{ ticket.area_id|default:'' }}">{{ ticket.area|default:'Other' }}</a></dd></div>
+        <div><dt><span class="ms">flag</span>Priority</dt><dd>{{ ticket.priority }}</dd></div>
+        <div><dt><span class="ms">calendar_today</span>Due date</dt><dd>{% if ticket.due_date %}<span class="due-badge {{ ticket|due_state }}">{{ ticket.due_date|date:'M j, Y' }}</span>{% else %}Not set{% endif %}</dd></div>
+        <div><dt><span class="ms">person_add</span>Submitted by</dt><dd>{{ ticket.submitted_by|display_name }}</dd></div>
+        <div><dt><span class="ms">schedule</span>Submitted</dt><dd title="{{ ticket.submitted_at }}">{{ ticket.submitted_at|date:'M j, Y' }}</dd></div>
+        <div><dt><span class="ms">update</span>Last updated</dt><dd title="{{ ticket.updated_at }}">{{ ticket.updated_at|timesince }} ago</dd></div>
+        {% if ticket.completed_at %}<div><dt><span class="ms">check_circle</span>Completed</dt><dd>{{ ticket.completed_at|date:'M j, Y' }}</dd></div>{% endif %}
+      </dl>
+    </section>
+  </aside>
 </section>
 {% endblock %}

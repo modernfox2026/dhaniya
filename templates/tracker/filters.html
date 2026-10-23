@@ -1,1 +1,52 @@
-<form method="get" class="filters"><div class="filter-grid"><input name="q" value="{{ request.GET.q }}" placeholder="Search all tickets..."><select name="status"><option value="">All statuses</option>{% for value,label in statuses %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><select name="priority"><option value="">All priorities</option>{% for value,label in priorities %}<option value="{{ value }}" {% if request.GET.priority == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><select name="area"><option value="">All areas</option>{% for item in areas %}<option value="{{ item.pk }}" {% if request.GET.area == item.pk|stringformat:'s' %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</select><select name="submitter"><option value="">All submitters</option>{% for item in submitters %}<option value="{{ item.pk }}" {% if request.GET.submitter == item.pk|stringformat:'s' %}selected{% endif %}>{{ item.username }}</option>{% endfor %}</select><button>Apply filters</button></div><div class="filter-meta"><span>Showing {{ filtered_count }} of {{ total_count }} tickets</span><a href="{{ request.path }}">Clear filters</a></div></form>
+{% load tracker_tags %}
+<form method="get" class="card filters" role="search">
+  {% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+  {% if per_page %}<input type="hidden" name="per_page" value="{{ per_page }}">{% endif %}
+  {% if request.GET.open %}<input type="hidden" name="open" value="{{ request.GET.open }}">{% endif %}
+  {% if request.GET.due %}<input type="hidden" name="due" value="{{ request.GET.due }}">{% endif %}
+  <div class="filter-grid">
+    <label class="search-field">
+      <span class="ms">search</span>
+      <span class="sr-only">Search</span>
+      <input name="q" value="{{ request.GET.q }}" placeholder="Search title, description, people, or ACMI number" data-search autocomplete="off">
+      <kbd>/</kbd>
+    </label>
+    <select name="status" data-autosubmit aria-label="Status">
+      <option value="">All statuses</option>
+      {% for value,label in statuses %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <select name="priority" data-autosubmit aria-label="Priority">
+      <option value="">All priorities</option>
+      {% for value,label in priorities %}<option value="{{ value }}" {% if request.GET.priority == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <select name="area" data-autosubmit aria-label="Area">
+      <option value="">All areas</option>
+      {% for item in areas %}<option value="{{ item.pk }}" {% if request.GET.area == item.pk|stringformat:'s' %}selected{% endif %}>{{ item.name }}</option>{% endfor %}
+    </select>
+    <select name="assignee" data-autosubmit aria-label="Assignee">
+      <option value="">Any assignee</option>
+      <option value="me" {% if request.GET.assignee == 'me' %}selected{% endif %}>Assigned to me</option>
+      <option value="none" {% if request.GET.assignee == 'none' %}selected{% endif %}>Unassigned</option>
+      {% for item in assignees %}<option value="{{ item.pk }}" {% if request.GET.assignee == item.pk|stringformat:'s' %}selected{% endif %}>{{ item|display_name }}</option>{% endfor %}
+    </select>
+    <select name="submitter" data-autosubmit aria-label="Submitter">
+      <option value="">Any submitter</option>
+      {% for item in submitters %}<option value="{{ item.pk }}" {% if request.GET.submitter == item.pk|stringformat:'s' %}selected{% endif %}>{{ item|display_name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="filter-meta">
+    <div class="chip-row">
+      <a class="chip {% if request.GET.assignee == 'me' %}selected{% endif %}" href="{% toggle request.GET 'assignee' 'me' %}"><span class="ms">person</span>Mine</a>
+      <a class="chip {% if request.GET.assignee == 'none' %}selected{% endif %}" href="{% toggle request.GET 'assignee' 'none' %}"><span class="ms">person_off</span>Unassigned</a>
+      <a class="chip {% if request.GET.due == 'overdue' %}selected{% endif %}" href="{% toggle request.GET 'due' 'overdue' %}"><span class="ms">event_busy</span>Overdue</a>
+      <a class="chip {% if request.GET.due == 'week' %}selected{% endif %}" href="{% toggle request.GET 'due' 'week' %}"><span class="ms">calendar_today</span>Due in 7 days</a>
+      <a class="chip {% if request.GET.priority == 'Critical' %}selected{% endif %}" href="{% toggle request.GET 'priority' 'Critical' %}"><span class="ms">priority_high</span>Critical</a>
+      <a class="chip {% if request.GET.open == '1' %}selected{% endif %}" href="{% toggle request.GET 'open' '1' %}"><span class="ms">filter_list</span>Hide completed</a>
+    </div>
+    <div class="chip-row">
+      <span class="count">Showing <b>{{ filtered_count }}</b> of {{ total_count }} tickets</span>
+      {% if has_filters %}<a class="btn btn-text btn-sm" href="{{ request.path }}{% if sort %}?sort={{ sort }}{% endif %}"><span class="ms">filter_alt_off</span>Clear</a>{% endif %}
+      <noscript><button class="btn btn-tonal btn-sm">Apply</button></noscript>
+    </div>
+  </div>
+</form>

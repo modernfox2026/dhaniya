@@ -1,1 +1,31 @@
-{% extends 'base.html' %}{% block title %}Sign In{% endblock %}{% block content %}<div class="login-page"><section class="login-hero"><div><div class="hero-logo">M</div><h1>FoxPro Modernization Project Tracker</h1><p>Track all work involved in moving the Visual FoxPro application into the .NET implementation.</p></div><div class="hero-stats"><div><b>4</b><span>Workflow stages</span></div><div><b>Local</b><span>Private SQL hosting</span></div></div></section><section class="login-form"><form method="post">{% csrf_token %}<h2>Welcome back</h2><p>Sign in with a local account created by an administrator.</p>{{ form.non_field_errors }}<label>Username</label>{{ form.username }}<label>Password</label>{{ form.password }}<button>Sign in</button></form></section></div>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="login-page">
+  <section class="login-hero">
+    <div>
+      <span class="brand-mark"><span class="ms fill lg">change_circle</span></span>
+      <h1>FoxPro Modernization Project Tracker</h1>
+      <p>Track every piece of work involved in moving the Visual FoxPro application into the .NET implementation.</p>
+    </div>
+    <div class="hero-points">
+      <div><span class="ms">view_kanban</span><b>Work board</b><small>Drag tickets through four workflow stages</small></div>
+      <div><span class="ms">insights</span><b>Insights</b><small>Progress by area, throughput, workload</small></div>
+      <div><span class="ms">lock</span><b>Private</b><small>Hosted locally on your SQL Server</small></div>
+    </div>
+  </section>
+  <section class="login-form">
+    <button type="button" class="icon-btn theme-btn" data-theme-toggle aria-label="Toggle dark mode"><span class="ms">dark_mode</span></button>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <h2>Welcome back</h2>
+      <p class="muted">Sign in with a local account created by an administrator.</p>
+      {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <label class="field"><span>Username</span>{{ form.username }}</label>
+      <label class="field"><span>Password</span>{{ form.password }}</label>
+      <button class="btn btn-filled">Sign in</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

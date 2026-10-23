@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load tracker_tags %}
+{% block title %}My Work{% endblock %}
+{% block content %}
+<header class="topbar">
+  <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
+  <div class="topbar-title">
+    <h1>Hello, {{ user.first_name|default:user.username }}</h1>
+    <p>{{ today|date:'l, F j' }} · here is what needs your attention.</p>
+  </div>
+  <div class="topbar-actions">
+    <a class="btn btn-outlined" href="{% url 'board' %}?assignee=me"><span class="ms">view_kanban</span><span class="label">My board</span></a>
+    <a class="btn btn-filled" href="{% url 'ticket_create' %}"><span class="ms">add</span><span class="label">New ticket</span></a>
+  </div>
+</header>
+<section class="content">
+  <div class="stat-grid">
+    <a class="stat-card" href="{% url 'backlog' %}?assignee=me&open=1"><span class="stat-icon status-progress"><span class="ms">assignment_ind</span></span><div><span class="label">Assigned to me</span><b>{{ stats.open }}</b></div></a>
+    <a class="stat-card" href="{% url 'backlog' %}?assignee=me&due=overdue"><span class="stat-icon {% if stats.overdue %}priority-high{% else %}status-backlog{% endif %}"><span class="ms">event_busy</span></span><div><span class="label">Overdue</span><b>{{ stats.overdue }}</b></div></a>
+    <a class="stat-card" href="{% url 'backlog' %}?assignee=me&due=week"><span class="stat-icon status-testing"><span class="ms">calendar_today</span></span><div><span class="label">Due in 7 days</span><b>{{ stats.week }}</b></div></a>
+    <a class="stat-card" href="{% url 'backlog' %}?assignee=me&status=COMPLETED&sort=-updated"><span class="stat-icon status-completed"><span class="ms">task_alt</span></span><div><span class="label">Completed, last 30 days</span><b>{{ stats.done }}</b></div></a>
+  </div>
+
+  <div class="two-col">
+    <div class="stack">
+      {% if attention %}
+      <section class="card">
+        <div class="card-head"><h2><span class="ms">warning</span>Needs attention</h2><small>Overdue or due within 7 days</small></div>
+        {% for ticket in attention %}{% include 'tracker/_ticket_row.html' with show_status=True %}{% endfor %}
+      </section>
+      {% endif %}
+      <section class="card">
+        <div class="card-head"><h2><span class="ms">assignment_ind</span>My open tickets</h2><small>Sorted by priority, then due date</small></div>
+        {% if stats.open %}
+          {% for value,label,items in groups %}{% if items %}
+          <div class="group-label"><span class="dot {{ value }}" style="width:8px;height:8px;border-radius:50%;display:inline-block"></span>{{ label }} · {{ items|length }}</div>
+          {% for ticket in items %}{% include 'tracker/_ticket_row.html' %}{% endfor %}
+          {% endif %}{% endfor %}
+        {% else %}
+        <div class="empty-state"><span class="ms">task_alt</span><b>Nothing assigned to you</b><span>Pick up something from the <a class="btn btn-text btn-sm" href="{% url 'backlog' %}?assignee=none&open=1">unassigned queue</a></span></div>
+        {% endif %}
+      </section>
+    </div>
+    <div class="stack">
+      <section class="card">
+        <div class="card-head"><h2><span class="ms">task_alt</span>Ready to test</h2><a class="btn btn-text btn-sm" href="{% url 'backlog' %}?status=READY_TO_TEST">View all</a></div>
+        {% for ticket in ready %}{% include 'tracker/_ticket_row.html' with show_assignee=True %}{% empty %}<div class="empty-state"><b>Testing queue is empty</b></div>{% endfor %}
+      </section>
+      <section class="card">
+        <div class="card-head"><h2><span class="ms">history</span>Recent team activity</h2></div>
+        {% for item in activity %}
+        <div class="activity-row">
+          <span class="avatar sm">{{ item.changed_by|initials }}</span>
+          <div>
+            <b>{{ item.changed_by|display_name }}</b>
+            {% if item.change_type == 'Created' %}created{% elif item.change_type == 'StatusChanged' %}moved{% elif item.change_type == 'CommentAdded' %}commented on{% else %}updated{% endif %}
+            <a href="{% url 'ticket_detail' item.ticket_id %}">{{ item.ticket.ticket_number }}</a>
+            {% if item.change_type == 'StatusChanged' %}to {{ item.new_value|status_label }}{% endif %}
+            <small>{{ item.ticket.title|truncatechars:60 }} · {{ item.changed_at|timesince }} ago</small>
+          </div>
+        </div>
+        {% empty %}<div class="empty-state"><b>No activity yet</b></div>{% endfor %}
+      </section>
+    </div>
+  </div>
+</section>
+{% endblock %}

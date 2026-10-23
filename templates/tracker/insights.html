@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load tracker_tags %}
+{% block title %}Insights{% endblock %}
+{% block content %}
+<header class="topbar">
+  <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
+  <div class="topbar-title">
+    <h1>Insights</h1>
+    <p>Progress of the FoxPro to .NET migration across areas and people.</p>
+  </div>
+  <div class="topbar-actions">
+    <a class="btn btn-outlined" href="{% url 'backlog_export' %}"><span class="ms">download</span><span class="label">Export all</span></a>
+  </div>
+</header>
+<section class="content">
+  <div class="stat-grid">
+    <a class="stat-card" href="{% url 'backlog' %}?open=1"><span class="stat-icon status-progress"><span class="ms">inbox</span></span><div><span class="label">Open tickets</span><b>{{ open_count }}</b></div></a>
+    <a class="stat-card" href="{% url 'backlog' %}?due=overdue"><span class="stat-icon {% if overdue %}priority-high{% else %}status-backlog{% endif %}"><span class="ms">event_busy</span></span><div><span class="label">Overdue</span><b>{{ overdue }}</b></div></a>
+    <a class="stat-card" href="{% url 'backlog' %}?assignee=none&open=1"><span class="stat-icon status-testing"><span class="ms">person_off</span></span><div><span class="label">Unassigned</span><b>{{ unassigned }}</b></div></a>
+    <div class="stat-card"><span class="stat-icon status-completed"><span class="ms">timer</span></span><div><span class="label">Avg. days to complete (90d)</span><b>{{ cycle_time|default:'None' }}</b></div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="stack">
+      <section class="card">
+        <div class="card-head"><h2><span class="ms">trending_up</span>Throughput</h2>
+          <div class="chart-legend"><span><i style="background:var(--outline-variant)"></i>Created</span><span><i style="background:var(--primary)"></i>Completed</span></div>
+        </div>
+        <div class="chart" role="img" aria-label="Tickets created and completed per week for the last 12 weeks">
+          {% for w in weeks %}
+          <div class="week" title="Week of {{ w.start|date:'M j' }}: {{ w.created }} created, {{ w.completed }} completed">
+            <span class="bar created" style="height:{{ w.created_pct|floatformat:'0' }}%"></span>
+            <span class="bar completed" style="height:{{ w.completed_pct|floatformat:'0' }}%"></span>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="chart-labels">{% for w in weeks %}<span>{{ w.start|date:'n/j' }}</span>{% endfor %}</div>
+        <div class="card-pad muted" style="padding-top:0">{{ completed_recent }} ticket{{ completed_recent|pluralize }} completed in the last 4 weeks. Peak week: {{ peak }}.</div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2><span class="ms">label</span>Progress by area</h2><small>Share of tickets in each stage</small></div>
+        {% for row in area_rows %}
+        <div class="area-row">
+          <header><a href="{% url 'backlog' %}{% if row.id %}?area={{ row.id }}{% endif %}"><b>{{ row.name }}</b></a><small>{{ row.done_pct }}% complete · {{ row.total }} ticket{{ row.total|pluralize }}</small></header>
+          <div class="stacked">{% for s in row.segments %}{% if s.count %}<span class="{{ s.value }}" style="width:{{ s.pct|stringformat:'.1f' }}%" title="{{ s.label }}: {{ s.count }}"></span>{% endif %}{% endfor %}</div>
+        </div>
+        {% empty %}<div class="empty-state"><span class="ms">insights</span><b>No tickets yet</b></div>{% endfor %}
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card card-pad">
+        <p class="eyebrow">Overall completion</p>
+        <div class="overview">
+          <div class="progress-ring" style="--pct: {{ done_pct }}"><div><div><b>{{ done_pct }}%</b><small>of {{ total }}</small></div></div></div>
+          <div class="legend">
+            {% for s in status_segments %}
+            <div><span class="dot {{ s.value }}"></span>{{ s.label }}<b>{{ s.count }}</b></div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2><span class="ms">group</span>Workload</h2><small>Open tickets by priority</small></div>
+        {% for row in people_rows %}
+        <div class="area-row">
+          <header><b>{{ row.name }}</b><small>{{ row.open }} open{% if row.overdue %} · <span style="color:var(--error)">{{ row.overdue }} overdue</span>{% endif %}</small></header>
+          <div class="load-bar">{% for b in row.bars %}{% if b.count %}<span class="{{ b.priority }}" style="width:{{ b.pct|stringformat:'.1f' }}%" title="{{ b.priority }}: {{ b.count }}"></span>{% endif %}{% endfor %}</div>
+        </div>
+        {% empty %}<div class="empty-state"><b>No open work</b></div>{% endfor %}
+        <div class="card-pad chart-legend" style="padding-top:12px">
+          <span><i style="background:var(--error)"></i>Critical</span><span><i style="background:#e8a29a"></i>High</span><span><i style="background:var(--tertiary)"></i>Medium</span><span><i style="background:var(--outline-variant)"></i>Low</span>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+{% endblock %}
