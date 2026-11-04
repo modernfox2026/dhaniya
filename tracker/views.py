@@ -397,6 +397,27 @@ def ticket_bulk(request):
     messages.success(request, f'{changed} task{"s" if changed != 1 else ""} updated.')
     return redirect(target)
 
+@user_passes_test(is_admin, login_url='login')
+@require_POST
+@transaction.atomic
+def ticket_delete(request, pk):
+    ticket = get_object_or_404(Ticket, pk=pk)
+    number = ticket.ticket_number
+    ticket.delete()  # comments and history go with it
+    messages.success(request, f'{number} deleted.')
+    return redirect(safe_next(request, reverse('backlog')))
+
+@user_passes_test(is_admin, login_url='login')
+@require_POST
+@transaction.atomic
+def ticket_bulk_delete(request):
+    ids = [i for i in request.POST.getlist('tickets') if i.isdigit()]
+    deleted = Ticket.objects.filter(pk__in=ids).count()
+    Ticket.objects.filter(pk__in=ids).delete()
+    if deleted: messages.success(request, f'{deleted} task{"s" if deleted != 1 else ""} deleted.')
+    else: messages.info(request, 'Select at least one task to delete.')
+    return redirect(safe_next(request, reverse('backlog')))
+
 @login_required
 def logout_view(request): logout(request); return redirect('login')
 
@@ -452,6 +473,16 @@ def sprint_state(request, pk):
     sprint.save()
     return redirect('sprints')
 
+@user_passes_test(is_admin, login_url='login')
+@require_POST
+@transaction.atomic
+def sprint_delete(request, pk):
+    sprint = get_object_or_404(Sprint, pk=pk)
+    released = sprint.tickets.update(sprint=None)  # tasks stay, they just leave the sprint
+    sprint.delete()
+    messages.success(request, f'{sprint.name} deleted. {released} task{"s" if released != 1 else ""} moved to unplanned.')
+    return redirect('sprints')
+
 # ---------------------------------------------------------------- categories
 
 def can_manage_category(user, category):
@@ -484,6 +515,16 @@ def category_form(request, pk=None):
     else:
         form = CategoryForm(instance=category, user=request.user)
     return render(request, 'tracker/simple_form.html', {'form': form, 'title': f'Edit {category.name}' if category else 'New category', 'back': reverse('categories'), 'icon': 'label'})
+
+@user_passes_test(is_admin, login_url='login')
+@require_POST
+@transaction.atomic
+def category_delete(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    released = category.tickets.update(category=None)  # tasks stay, they become uncategorized
+    category.delete()
+    messages.success(request, f'Category "{category.name}" deleted. {released} task{"s" if released != 1 else ""} now uncategorized.')
+    return redirect('categories')
 
 # ---------------------------------------------------------------- user administration
 

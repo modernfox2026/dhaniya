@@ -27,6 +27,7 @@
           <small>{{ cat.open_count }} open task{{ cat.open_count|pluralize }}{% if cat.created_by %} · added by {{ cat.created_by|display_name }}{% endif %}{% if not cat.is_active %} · hidden{% endif %}</small>
         </div>
         {% if cat.editable %}<a class="icon-btn sm" href="{% url 'category_edit' cat.pk %}" title="Edit" aria-label="Edit {{ cat.name }}"><span class="ms">edit</span></a>{% endif %}
+        {% if user.is_staff %}<form method="post" action="{% url 'category_delete' cat.pk %}" data-confirm="Delete the {{ cat.name }} category? {{ cat.open_count }} open task{{ cat.open_count|pluralize }} using it will become uncategorized.">{% csrf_token %}<button class="icon-btn sm danger" title="Delete" aria-label="Delete {{ cat.name }}"><span class="ms">delete</span></button></form>{% endif %}
       </div>
       {% endfor %}
     </section>
