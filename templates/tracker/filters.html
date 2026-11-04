@@ -4,13 +4,21 @@
   {% if per_page %}<input type="hidden" name="per_page" value="{{ per_page }}">{% endif %}
   {% if request.GET.open %}<input type="hidden" name="open" value="{{ request.GET.open }}">{% endif %}
   {% if request.GET.due %}<input type="hidden" name="due" value="{{ request.GET.due }}">{% endif %}
-  <div class="filter-grid">
+  <div class="filter-top">
     <label class="search-field">
       <span class="ms">search</span>
       <span class="sr-only">Search</span>
-      <input name="q" value="{{ request.GET.q }}" placeholder="Search tasks, people, categories, or task number" data-search autocomplete="off">
+      <input name="q" value="{{ request.GET.q }}" placeholder="Search tasks, people, or #number" data-search autocomplete="off">
       <kbd>/</kbd>
     </label>
+    <button type="button" class="btn btn-outlined btn-sm filter-toggle" data-filter-toggle aria-controls="filter-panel" aria-expanded="{% if select_filters %}true{% else %}false{% endif %}">
+      <span class="ms">tune</span>Filters{% if select_filters %}<span class="badge">{{ select_filters }}</span>{% endif %}
+    </button>
+    <span class="count">Showing <b>{{ filtered_count }}</b> of {{ total_count }}</span>
+    {% if has_filters %}<a class="btn btn-text btn-sm" href="{{ request.path }}{% if sort %}?sort={{ sort }}{% endif %}"><span class="ms">filter_alt_off</span>Clear</a>{% endif %}
+    <noscript><button class="btn btn-tonal btn-sm">Apply</button></noscript>
+  </div>
+  <div class="filter-grid" id="filter-panel" data-filter-panel {% if not select_filters %}data-collapsed{% endif %}>
     <select name="status" data-autosubmit aria-label="Status">
       <option value="">All statuses</option>
       {% for value,label in statuses %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
@@ -49,8 +57,7 @@
       {% for item in submitters %}<option value="{{ item.pk }}" {% if request.GET.submitter == item.pk|stringformat:'s' %}selected{% endif %}>{{ item|display_name }}</option>{% endfor %}
     </select>
   </div>
-  <div class="filter-meta">
-    <div class="chip-row">
+  <div class="quick-chips">
       <a class="chip {% if request.GET.assignee == 'me' %}selected{% endif %}" href="{% toggle request.GET 'assignee' 'me' %}"><span class="ms">person</span>Mine</a>
       {% if my_team %}<a class="chip {% if request.GET.team == 'mine' %}selected{% endif %}" href="{% toggle request.GET 'team' 'mine' %}"><span class="ms">badge</span>My team</a>{% endif %}
       <a class="chip {% if request.GET.assignee == 'none' %}selected{% endif %}" href="{% toggle request.GET 'assignee' 'none' %}"><span class="ms">person_off</span>Unassigned</a>
@@ -58,11 +65,5 @@
       <a class="chip {% if request.GET.due == 'week' %}selected{% endif %}" href="{% toggle request.GET 'due' 'week' %}"><span class="ms">calendar_today</span>Due in 7 days</a>
       <a class="chip {% if request.GET.priority == 'Critical' %}selected{% endif %}" href="{% toggle request.GET 'priority' 'Critical' %}"><span class="ms">priority_high</span>Critical</a>
       <a class="chip {% if request.GET.open == '1' %}selected{% endif %}" href="{% toggle request.GET 'open' '1' %}"><span class="ms">filter_list</span>Hide completed</a>
-    </div>
-    <div class="chip-row">
-      <span class="count">Showing <b>{{ filtered_count }}</b> of {{ total_count }} tasks</span>
-      {% if has_filters %}<a class="btn btn-text btn-sm" href="{{ request.path }}{% if sort %}?sort={{ sort }}{% endif %}"><span class="ms">filter_alt_off</span>Clear</a>{% endif %}
-      <noscript><button class="btn btn-tonal btn-sm">Apply</button></noscript>
-    </div>
   </div>
 </form>

@@ -94,6 +94,8 @@ def common_context(request, qs, default_sprint=''):
         'filtered_count': qs.count(), 'total_count': Ticket.objects.count(), 'today': timezone.localdate(),
         'has_filters': any(request.GET.get(k) for k in FILTER_KEYS),
         'sprint_param': request.GET.get('sprint', default_sprint),
+        'select_filters': sum(1 for k in ('status','priority','team','category','assignee','submitter') if request.GET.get(k))
+                          + (request.GET.get('sprint', default_sprint) != default_sprint),
     }
 
 # ---------------------------------------------------------------- views
@@ -131,7 +133,7 @@ SORTS = {
     'team': ('team__name',), 'category': ('category__name',), 'sprint': ('sprint__start_date',), 'time': ('time_spent_seconds',), 'assignee': ('assigned_to__first_name', 'assigned_to__username'), 'due': ('due_date',), 'updated': ('updated_at',),
 }
 
-SORT_COLUMNS = [('number','Task'),('title','Title'),('status','Status'),('priority','Priority'),('team','Team'),('category','Category'),('sprint','Sprint'),('assignee','Assigned to'),('due','Due'),('time','Time'),('updated','Updated')]
+SORT_COLUMNS = [('title','Task'),('status','Status'),('priority','Priority'),('team','Role · category'),('sprint','Sprint'),('assignee','Assigned to'),('due','Due'),('time','Time'),('updated','Updated')]
 
 def sorted_tickets(request):
     qs = filtered_tickets(request)

@@ -139,6 +139,18 @@
 
   /* ------------------------------------------------------------ small helpers */
 
+  /* The filter dropdowns stay folded away until needed; they open by themselves when one is in use. */
+  var filterPanel = document.querySelector('[data-filter-panel]');
+  var filterToggle = document.querySelector('[data-filter-toggle]');
+  if (filterPanel && filterToggle) {
+    if (filterPanel.hasAttribute('data-collapsed')) filterPanel.hidden = true;
+    filterToggle.addEventListener('click', function () {
+      filterPanel.hidden = !filterPanel.hidden;
+      filterToggle.setAttribute('aria-expanded', String(!filterPanel.hidden));
+      if (!filterPanel.hidden) { var first = filterPanel.querySelector('select'); if (first) first.focus(); }
+    });
+  }
+
   document.querySelectorAll('[data-autosubmit]').forEach(function (el) {
     el.addEventListener('change', function () { el.form.submit(); });
   });
