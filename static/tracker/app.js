@@ -155,6 +155,12 @@
     el.addEventListener('change', function () { el.form.submit(); });
   });
 
+  document.querySelectorAll('button[data-confirm]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      if (!window.confirm(btn.getAttribute('data-confirm'))) e.preventDefault();
+    });
+  });
+
   document.querySelectorAll('form[data-confirm]').forEach(function (form) {
     form.addEventListener('submit', function (e) {
       if (!window.confirm(form.getAttribute('data-confirm'))) e.preventDefault();

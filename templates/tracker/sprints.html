@@ -29,6 +29,9 @@
           <a class="btn btn-text btn-sm" href="{% url 'backlog' %}?sprint={{ s.pk }}"><span class="ms">list_alt</span>Tasks</a>
           {% if user.is_staff %}
           <a class="icon-btn sm" href="{% url 'sprint_edit' s.pk %}" title="Edit sprint" aria-label="Edit {{ s.name }}"><span class="ms">edit</span></a>
+          <form method="post" action="{% url 'sprint_delete' s.pk %}" data-confirm="Delete {{ s.name }}? Its {{ row.total }} task{{ row.total|pluralize }} will be kept and moved to unplanned.">
+            {% csrf_token %}<button class="icon-btn sm danger" title="Delete sprint" aria-label="Delete {{ s.name }}"><span class="ms">delete</span></button>
+          </form>
           {% if s.state == 'PLANNED' %}
           <form method="post" action="{% url 'sprint_state' s.pk %}">{% csrf_token %}<input type="hidden" name="action" value="start"><button class="btn btn-filled btn-sm"><span class="ms">play_arrow</span>Start</button></form>
           {% elif s.state == 'ACTIVE' %}

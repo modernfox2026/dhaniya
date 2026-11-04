@@ -13,6 +13,11 @@
   </div>
   <div class="topbar-actions">
     <a class="btn btn-outlined" href="{% url 'ticket_create' %}?from={{ ticket.pk }}" title="Create a new task from this one"><span class="ms">content_copy</span><span class="label">Duplicate</span></a>
+    {% if user.is_staff %}
+    <form method="post" action="{% url 'ticket_delete' ticket.pk %}" data-confirm="Delete {{ ticket.ticket_number }} permanently? Its comments and history will be deleted too.">
+      {% csrf_token %}<button class="btn btn-danger" title="Delete task"><span class="ms">delete</span><span class="label">Delete</span></button>
+    </form>
+    {% endif %}
     <a class="btn btn-filled" href="{% url 'ticket_edit' ticket.pk %}" data-shortcut="edit" title="Edit (e)"><span class="ms">edit</span><span class="label">Edit</span></a>
   </div>
 </header>

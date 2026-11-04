@@ -28,6 +28,7 @@
       <select name="sprint" aria-label="Set sprint"><option value="">Keep sprint</option><option value="none">Remove from sprint</option>{% for item in sprints %}<option value="{{ item.pk }}">{{ item.name }}</option>{% endfor %}</select>
       <select name="category" aria-label="Set category"><option value="">Keep category</option>{% regroup categories by team as cat_groups %}{% for group in cat_groups %}<optgroup label="{{ group.grouper|default:'Shared' }}">{% for item in group.list %}<option value="{{ item.pk }}">{{ item.name }}</option>{% endfor %}</optgroup>{% endfor %}</select>
       <button class="btn btn-filled btn-sm"><span class="ms">check</span>Apply</button>
+      {% if user.is_staff %}<button class="btn btn-danger btn-sm" formaction="{% url 'ticket_bulk_delete' %}" data-confirm="Delete the selected tasks permanently? Their comments and history will be deleted too."><span class="ms">delete</span>Delete</button>{% endif %}
       <button type="button" class="btn btn-text btn-sm" data-clear-selection>Cancel</button>
     </div>
     <div class="table-scroll">

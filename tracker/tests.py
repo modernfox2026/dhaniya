@@ -209,3 +209,55 @@ class TeamSprintTimeTests(TestCase):
         self.client.post(reverse('user_edit', args=[self.admin.pk]), {'display_name': 'Boss', 'role': 'Member'})
         self.admin.refresh_from_db()
         self.assertTrue(self.admin.is_staff and self.admin.is_active)
+
+
+@override_settings(STORAGES={'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+                            'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
+class AdminDeleteTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = User.objects.create_user('boss', password='pw-123456789', is_staff=True)
+        cls.member = User.objects.create_user('dev', password='pw-123456789')
+
+    def setUp(self):
+        self.sprint = Sprint.objects.create(name='S1', start_date=timezone.localdate(), end_date=timezone.localdate())
+        self.category = Category.objects.create(name='Reports')
+        self.ticket = Ticket.objects.create(title='keep me', submitted_by=self.member, sprint=self.sprint, category=self.category)
+        TicketHistory.objects.create(ticket=self.ticket, changed_by=self.member, change_type='Created')
+
+    def test_members_cannot_delete(self):
+        self.client.force_login(self.member)
+        for name, obj in [('ticket_delete', self.ticket), ('sprint_delete', self.sprint), ('category_delete', self.category)]:
+            self.client.post(reverse(name, args=[obj.pk]))
+        self.client.post(reverse('ticket_bulk_delete'), {'tickets': [self.ticket.pk]})
+        self.assertTrue(Ticket.objects.filter(pk=self.ticket.pk).exists())
+        self.assertTrue(Sprint.objects.filter(pk=self.sprint.pk).exists())
+        self.assertTrue(Category.objects.filter(pk=self.category.pk).exists())
+
+    def test_delete_sprint_keeps_tasks(self):
+        self.client.force_login(self.admin)
+        self.client.post(reverse('sprint_delete', args=[self.sprint.pk]))
+        self.assertFalse(Sprint.objects.exists())
+        self.ticket.refresh_from_db()
+        self.assertIsNone(self.ticket.sprint)
+
+    def test_delete_category_keeps_tasks(self):
+        self.client.force_login(self.admin)
+        self.client.post(reverse('category_delete', args=[self.category.pk]))
+        self.assertFalse(Category.objects.exists())
+        self.ticket.refresh_from_db()
+        self.assertIsNone(self.ticket.category)
+
+    def test_delete_task_removes_its_history(self):
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.get(reverse('ticket_delete', args=[self.ticket.pk])).status_code, 405)
+        self.client.post(reverse('ticket_delete', args=[self.ticket.pk]))
+        self.assertFalse(Ticket.objects.exists())
+        self.assertFalse(TicketHistory.objects.exists())
+
+    def test_bulk_delete(self):
+        other = Ticket.objects.create(title='other', submitted_by=self.member)
+        spare = Ticket.objects.create(title='spare', submitted_by=self.member)
+        self.client.force_login(self.admin)
+        self.client.post(reverse('ticket_bulk_delete'), {'tickets': [self.ticket.pk, other.pk]})
+        self.assertEqual(list(Ticket.objects.values_list('title', flat=True)), ['spare'])

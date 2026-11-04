@@ -320,6 +320,8 @@ h3 { font-size: 1rem; font-weight: 500; }
 .fab:hover { box-shadow: 0 6px 10px 4px rgba(0, 0, 0, .1), 0 2px 3px rgba(0, 0, 0, .16); }
 .icon-btn { width: 40px; height: 40px; border-radius: 50%; background: transparent; color: var(--on-surface-variant); }
 .icon-btn.sm { width: 32px; height: 32px; }
+.icon-btn.danger { color: var(--error); }
+.category-item form, .card-actions form { display: inline-flex; }
 
 /* ---------------------------------------------------------------- cards, chips, badges */
 
