@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load tracker_tags %}
+{% block title %}Categories{% endblock %}
+{% block content %}
+<header class="topbar">
+  <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
+  <div class="topbar-title">
+    <h1>Categories</h1>
+    <p>Each role keeps its own categories of work. {% if user.is_staff %}As an admin you can manage all of them.{% elif my_team %}You can add and edit categories for the {{ my_team.name }} team.{% else %}Ask an admin to assign you a role to add categories.{% endif %}</p>
+  </div>
+  <div class="topbar-actions">
+    {% if user.is_staff or my_team %}<a class="btn btn-filled" href="{% url 'category_create' %}"><span class="ms">add</span><span class="label">New category</span></a>{% endif %}
+  </div>
+</header>
+<section class="content">
+  <div class="category-grid">
+    {% for team, items in groups %}
+    <section class="card">
+      <div class="card-head">
+        <h2>{% if team %}<span class="swatch" style="{{ team|team_style }}"></span>{{ team.name }}{% else %}<span class="ms">public</span>Shared{% endif %}{% if team and team == my_team %} <span class="state-badge state-ACTIVE">Your team</span>{% endif %}</h2>
+        <span class="badge">{{ items|length }}</span>
+      </div>
+      {% for cat in items %}
+      <div class="category-item {% if not cat.is_active %}inactive{% endif %}">
+        <div class="grow">
+          <a href="{% url 'backlog' %}?category={{ cat.pk }}"><b>{{ cat.name }}</b></a>
+          <small>{{ cat.open_count }} open task{{ cat.open_count|pluralize }}{% if cat.created_by %} · added by {{ cat.created_by|display_name }}{% endif %}{% if not cat.is_active %} · hidden{% endif %}</small>
+        </div>
+        {% if cat.editable %}<a class="icon-btn sm" href="{% url 'category_edit' cat.pk %}" title="Edit" aria-label="Edit {{ cat.name }}"><span class="ms">edit</span></a>{% endif %}
+      </div>
+      {% endfor %}
+    </section>
+    {% empty %}
+    <div class="card"><div class="empty-state"><span class="ms">label</span><b>No categories yet</b></div></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

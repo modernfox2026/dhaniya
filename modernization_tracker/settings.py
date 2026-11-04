@@ -26,6 +26,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+# Prefix shown before task numbers, e.g. ACMI-000042.
+TICKET_PREFIX = os.getenv('TICKET_PREFIX', 'ACMI').strip().upper() or 'ACMI'
+
 ROOT_URLCONF = 'modernization_tracker.urls'
 TEMPLATES = [{
     'BACKEND': 'django.template.backends.django.DjangoTemplates',

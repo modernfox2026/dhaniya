@@ -91,6 +91,34 @@ def due_state(ticket):
     return ""
 
 
+@register.filter
+def duration(seconds):
+    """Compact work time such as 2d 3h, 4h 05m, or 12m."""
+    if seconds is None:
+        return ""
+
+    minutes = int(seconds) // 60
+    if minutes < 1:
+        return "<1m"
+
+    days, rest = divmod(minutes, 60 * 24)
+    hours, mins = divmod(rest, 60)
+    if days:
+        return f"{days}d {hours}h" if hours else f"{days}d"
+    if hours:
+        return f"{hours}h {mins:02d}m"
+    return f"{mins}m"
+
+
+@register.filter
+def team_style(team):
+    """Inline CSS custom property for a team's color chip."""
+    color = getattr(team, "color", "") or ""
+    if len(color) == 7 and color.startswith("#") and all(c in "0123456789abcdefABCDEF" for c in color[1:]):
+        return f"--team: {color}"
+    return ""
+
+
 @register.simple_tag
 def query(params, **changes):
     """Rebuild the current query string with some keys replaced or removed (value None or '')."""

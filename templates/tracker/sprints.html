@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load tracker_tags %}
+{% block title %}Sprints{% endblock %}
+{% block content %}
+<header class="topbar">
+  <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
+  <div class="topbar-title">
+    <h1>Sprints</h1>
+    <p>Time boxed goals for the whole team. Active sprints appear on the team board.</p>
+  </div>
+  <div class="topbar-actions">
+    <a class="btn btn-outlined" href="{% url 'backlog' %}?sprint=none&open=1"><span class="ms">inbox</span><span class="label">Unplanned tasks ({{ backlog_open }})</span></a>
+    {% if user.is_staff %}<a class="btn btn-filled" href="{% url 'sprint_create' %}"><span class="ms">add</span><span class="label">New sprint</span></a>{% endif %}
+  </div>
+</header>
+<section class="content">
+  <div class="sprint-list">
+    {% for row in rows %}
+    {% with s=row.sprint %}
+    {% ifchanged s.state %}<p class="eyebrow" style="margin:12px 0 0">{% if s.state == 'ACTIVE' %}Active{% elif s.state == 'PLANNED' %}Planned{% else %}Closed{% endif %}</p>{% endifchanged %}
+    <article class="card sprint-card">
+      <header>
+        <div>
+          <h2><span class="ms">directions_run</span>{{ s.name }} <span class="state-badge state-{{ s.state }}">{{ s.get_state_display }}</span></h2>
+          {% if s.goal %}<p class="muted" style="margin:6px 0 0">{{ s.goal }}</p>{% endif %}
+        </div>
+        <div class="card-actions">
+          <a class="btn btn-tonal btn-sm" href="{% url 'board' %}?sprint={{ s.pk }}"><span class="ms">view_kanban</span>Board</a>
+          <a class="btn btn-text btn-sm" href="{% url 'backlog' %}?sprint={{ s.pk }}"><span class="ms">list_alt</span>Tasks</a>
+          {% if user.is_staff %}
+          <a class="icon-btn sm" href="{% url 'sprint_edit' s.pk %}" title="Edit sprint" aria-label="Edit {{ s.name }}"><span class="ms">edit</span></a>
+          {% if s.state == 'PLANNED' %}
+          <form method="post" action="{% url 'sprint_state' s.pk %}">{% csrf_token %}<input type="hidden" name="action" value="start"><button class="btn btn-filled btn-sm"><span class="ms">play_arrow</span>Start</button></form>
+          {% elif s.state == 'ACTIVE' %}
+          <form method="post" action="{% url 'sprint_state' s.pk %}" data-confirm="Close {{ s.name }}? Unfinished tasks will be moved.">
+            {% csrf_token %}<input type="hidden" name="action" value="close">
+            <select name="move_to" aria-label="Move unfinished tasks to">
+              <option value="">Unfinished to backlog</option>
+              {% for n in next_sprints %}{% if n.pk != s.pk %}<option value="{{ n.pk }}">Unfinished to {{ n.name }}</option>{% endif %}{% endfor %}
+            </select>
+            <button class="btn btn-outlined btn-sm"><span class="ms">flag</span>Close</button>
+          </form>
+          {% endif %}
+          {% endif %}
+        </div>
+      </header>
+      <div class="meta">
+        <span><span class="ms">calendar_today</span>{{ s.start_date|date:'M j' }} to {{ s.end_date|date:'M j, Y' }} ({{ s.length_days }} day{{ s.length_days|pluralize }})</span>
+        <span><span class="ms">task_alt</span>{{ row.done }} of {{ row.total }} tasks done</span>
+        <span><span class="ms">timer</span>{{ row.seconds|duration|default:'0m' }} worked</span>
+        {% if s.state == 'ACTIVE' %}<span><span class="ms">schedule</span>{% if s.days_left >= 0 %}{{ s.days_left }} day{{ s.days_left|pluralize }} left{% else %}Past end date{% endif %}</span>{% endif %}
+      </div>
+      <div>
+        <div class="progress-bar"><span style="width:{{ row.done_pct }}%"></span></div>
+        <div class="progress-labels"><span>{{ row.done_pct }}% complete</span>{% if s.state == 'ACTIVE' %}<span>{{ s.elapsed_pct }}% of time elapsed</span>{% endif %}</div>
+      </div>
+    </article>
+    {% endwith %}
+    {% empty %}
+    <div class="card"><div class="empty-state"><span class="ms">directions_run</span><b>No sprints yet</b><span>{% if user.is_staff %}Create a sprint, add tasks to it from All tasks, then start it.{% else %}An admin can create the first sprint.{% endif %}</span>{% if user.is_staff %}<a class="btn btn-filled" style="margin-top:12px" href="{% url 'sprint_create' %}"><span class="ms">add</span>New sprint</a>{% endif %}</div></div>
+    {% endfor %}
+  </div>
+  <p class="muted" style="margin-top:16px"><span class="ms sm">lightbulb</span> To plan a sprint, open <a style="color:var(--primary);font-weight:500" href="{% url 'backlog' %}?sprint=none&open=1">unplanned tasks</a>, select rows, and choose the sprint in the bulk bar.</p>
+</section>
+{% endblock %}

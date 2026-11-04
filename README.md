@@ -1,6 +1,14 @@
-# FoxPro Modernization Tracker - Django MVC
+# Team Work Tracker - Django MVC
 
-A local Django application backed by Microsoft SQL Server for tracking the Visual FoxPro to .NET modernization project.
+A local Django application backed by Microsoft SQL Server where every role on the team (Developer, Toxicologist, Technical, Administration, or any role you add) tracks its work, plans sprints, and sees how long tasks take.
+
+## Roles, categories, sprints, and time
+
+- **Roles**: admins create roles (Users > Roles) and give each person a role and an access level (Member or Admin) when creating their login or later from Users.
+- **Categories**: each role has its own categories of work (for example Developers: Bug fix, Code review; Toxicologists: Study review, Risk assessment). Any member can add or edit categories for their own role; admins manage all of them, including shared categories everyone can use.
+- **Sprints**: admins create sprints with dates and a goal, then start them. The active sprint is shown on the **Team board** (home page) for the whole team, with progress, time worked, and days left. Closing a sprint moves unfinished tasks to the next sprint or back to the backlog. Plan tasks into a sprint from All tasks using the bulk bar.
+- **Time tracking**: the clock starts automatically when a task moves to **In Progress** and stops when it is **Completed**. Time in Ready to Test still counts; moving a task back to Backlog pauses the clock, and reopening a completed task resumes it. Running clocks update live on the board and appear on My work.
+
 
 ## Included
 
@@ -18,12 +26,12 @@ A local Django application backed by Microsoft SQL Server for tracking the Visua
 ## Productivity features
 
 - **My Work** page: your open tickets by status, anything overdue or due within 7 days, the Ready to Test queue, and recent team activity
-- **Drag and drop** on the Work Board (or use the swap icon on each card); cards sort by priority then due date, and Completed shows the latest 25
-- **Quick filter chips**: Mine, Unassigned, Overdue, Due in 7 days, Critical, Hide completed, plus an assignee filter
-- **Search by ticket number** (`ACMI-000012`, `#12`, or `12`)
-- **Backlog**: sortable columns, pagination, and bulk updates of status, priority, assignee, or area (Shift+Click selects a range)
+- **Drag and drop** on the Team board (or use the swap icon on each card); cards sort by priority then due date, and Completed shows the latest 25
+- **Filters**: role chips on the board, plus Mine, My team, Unassigned, Overdue, Due in 7 days, Critical, Hide completed, category, sprint, and assignee
+- **Search by task number** (`ACMI-000012`, `#12`, or `12`). Set `TICKET_PREFIX` in `.env` to change the prefix.
+- **All tasks**: sortable columns, pagination, and bulk updates of status, priority, assignee, category, or sprint (Shift+Click selects a range)
 - **CSV export** of the current filtered list
-- **Insights**: overall completion, weekly throughput for the last 12 weeks, progress by area, workload per person, average days to complete
+- **Insights**: overall completion, weekly throughput, progress and average time per role and per category, workload per person
 - Ticket page: one click status changes, **Assign to me**, **Duplicate**, copy ticket number, field by field change history
 - **Save and add another** when entering several tickets in a row
 - User administration: enable or disable accounts, promote or demote admins, see each person's open ticket count
@@ -36,6 +44,10 @@ Set `DB_ENGINE=sqlite` in `.env` to use a local `db.sqlite3` file instead of SQL
 ```powershell
 $env:DB_ENGINE="sqlite"; python manage.py test tracker
 ```
+
+## Upgrading from the modernization tracker
+
+Run `python manage.py migrate` and then `python manage.py seed_tracker`. Existing areas become shared categories, existing users get an empty role (assign one in Users), and tasks already In Progress or Ready to Test start their clock at upgrade time.
 
 ## Database
 
@@ -84,7 +96,7 @@ notepad .env
 python manage.py migrate
 ```
 
-8. Create standard areas and the initial administrator:
+8. Create the default roles, their starter categories, and the initial administrator (safe to run again; it never resets an existing admin password):
 
 ```powershell
 python manage.py seed_tracker
