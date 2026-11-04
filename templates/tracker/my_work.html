@@ -18,7 +18,7 @@
     <a class="stat-card" href="{% url 'backlog' %}?assignee=me&open=1"><span class="stat-icon status-progress"><span class="ms">assignment_ind</span></span><div><span class="label">Assigned to me</span><b>{{ stats.open }}</b></div></a>
     <a class="stat-card" href="{% url 'backlog' %}?assignee=me&due=overdue"><span class="stat-icon {% if stats.overdue %}priority-high{% else %}status-backlog{% endif %}"><span class="ms">event_busy</span></span><div><span class="label">Overdue</span><b>{{ stats.overdue }}</b></div></a>
     <a class="stat-card" href="{% url 'backlog' %}?assignee=me&due=week"><span class="stat-icon status-testing"><span class="ms">calendar_today</span></span><div><span class="label">Due in 7 days</span><b>{{ stats.week }}</b></div></a>
-    <a class="stat-card" href="{% url 'backlog' %}?assignee=me&status=COMPLETED&sort=-updated"><span class="stat-icon status-completed"><span class="ms">task_alt</span></span><div><span class="label">Done in 30 days · {{ stats.hours }}h worked</span><b>{{ stats.done }}</b></div></a>
+    <a class="stat-card" href="{% url 'backlog' %}?assignee=me&status=COMPLETED&sort=-updated"><span class="stat-icon status-completed"><span class="ms">task_alt</span></span><div><span class="label">Done in last 30 days</span><b>{{ stats.done }}</b><small>{{ stats.hours }}h worked</small></div></a>
   </div>
 
   <div class="two-col">

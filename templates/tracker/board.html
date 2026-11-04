@@ -32,7 +32,6 @@
     </div>
   </div>
 
-  {% include 'tracker/_stats.html' %}
   {% include 'tracker/filters.html' %}
   <div class="board" data-board>
     {% for column in columns %}
@@ -47,7 +46,6 @@
         <article class="ticket prio-{{ ticket.priority }} {% if ticket.team %}has-team{% endif %}" style="{{ ticket.team|team_style }}" draggable="true" data-number="{{ ticket.ticket_number }}" data-current="{{ ticket.status }}" data-move-url="{% url 'ticket_move' ticket.pk %}">
           <div class="ticket-top">
             <span class="ticket-number">{{ ticket.ticket_number }}</span>
-            {% if ticket.team %}<span class="team-chip" style="{{ ticket.team|team_style }}">{{ ticket.team.name }}</span>{% endif %}
             <form method="post" action="{% url 'ticket_move' ticket.pk %}" class="ticket-move" style="margin-left:auto">
               {% csrf_token %}
               <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -63,6 +61,7 @@
           <div class="ticket-meta">
             <span class="priority-badge {{ ticket.priority|priority_class }}">{{ ticket.priority }}</span>
             {% if ticket.due_date %}<span class="due-badge {{ ticket|due_state }}"><span class="ms">schedule</span>{{ ticket.due_date|date:'M j' }}</span>{% endif %}
+            {% if ticket.team %}<span class="team-chip" style="{{ ticket.team|team_style }}" title="Role">{{ ticket.team.name }}</span>{% endif %}
             {% if ticket.category %}<span class="tag">{{ ticket.category.name }}</span>{% endif %}
             {% include 'tracker/_timer.html' with t=ticket %}
             <span class="avatar sm {% if not ticket.assigned_to %}empty{% endif %}" title="{{ ticket.assigned_to|display_name }}">{% if ticket.assigned_to %}{{ ticket.assigned_to|initials }}{% else %}<span class="ms sm">person</span>{% endif %}</span>
