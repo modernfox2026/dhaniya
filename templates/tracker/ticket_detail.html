@@ -7,12 +7,12 @@
   <a class="icon-btn" href="{% url 'backlog' %}" title="Back to backlog" aria-label="Back to backlog"><span class="ms">arrow_back</span></a>
   <div class="topbar-title">
     <p class="eyebrow">{{ ticket.ticket_number }}
-      <button type="button" class="icon-btn sm" data-copy="{{ ticket.ticket_number }}" title="Copy ticket number" aria-label="Copy ticket number" style="vertical-align:middle;width:24px;height:24px"><span class="ms sm">content_copy</span></button>
+      <button type="button" class="icon-btn sm" data-copy="{{ ticket.ticket_number }}" title="Copy task number" aria-label="Copy task number" style="vertical-align:middle;width:24px;height:24px"><span class="ms sm">content_copy</span></button>
     </p>
     <h1>{{ ticket.title }}</h1>
   </div>
   <div class="topbar-actions">
-    <a class="btn btn-outlined" href="{% url 'ticket_create' %}?from={{ ticket.pk }}" title="Create a new ticket from this one"><span class="ms">content_copy</span><span class="label">Duplicate</span></a>
+    <a class="btn btn-outlined" href="{% url 'ticket_create' %}?from={{ ticket.pk }}" title="Create a new task from this one"><span class="ms">content_copy</span><span class="label">Duplicate</span></a>
     <a class="btn btn-filled" href="{% url 'ticket_edit' ticket.pk %}" data-shortcut="edit" title="Edit (e)"><span class="ms">edit</span><span class="label">Edit</span></a>
   </div>
 </header>
@@ -47,7 +47,7 @@
           </div>
         </article>
         {% empty %}
-        <div class="empty-state"><span class="ms">chat</span><b>No comments yet</b><span>Add implementation notes, test results, or legacy references.</span></div>
+        <div class="empty-state"><span class="ms">chat</span><b>No comments yet</b><span>Add notes, results, links, or questions for the team.</span></div>
         {% endfor %}
       </div>
     </article>
@@ -61,7 +61,7 @@
           <div class="timeline-body">
             <header>
               <div><b>{{ item.changed_by|display_name }}</b>
-                <span>{% if item.change_type == 'Created' %}created this ticket{% elif item.change_type == 'StatusChanged' %}changed the status{% elif item.change_type == 'CommentAdded' %}commented{% else %}updated the ticket{% endif %}</span>
+                <span>{% if item.change_type == 'Created' %}created this task{% elif item.change_type == 'StatusChanged' %}changed the status{% elif item.change_type == 'CommentAdded' %}commented{% else %}updated the task{% endif %}</span>
               </div>
               <time datetime="{{ item.changed_at|date:'c' }}" title="{{ item.changed_at }}">{{ item.changed_at|date:'M j, Y g:i A' }}</time>
             </header>
@@ -95,6 +95,15 @@
         <button name="status" value="{{ value }}" class="{% if ticket.status == value %}current{% endif %}" {% if ticket.status == value %}type="button" aria-pressed="true"{% endif %}><span class="ms">{{ value|status_icon }}</span>{{ label }}</button>
         {% endfor %}
       </form>
+      <div class="time-box">
+        <p class="eyebrow" style="margin-top:16px">Time worked</p>
+        {% if ticket.timer_running or ticket.time_spent_seconds %}
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          {% include 'tracker/_timer.html' with t=ticket %}
+          <small class="muted">{% if ticket.timer_running %}Running since {{ ticket.timer_started_at|date:'M j, g:i A' }}{% elif ticket.completed_at %}Started {{ ticket.started_at|date:'M j' }}, completed {{ ticket.completed_at|date:'M j' }}{% else %}Paused while in Backlog{% endif %}</small>
+        </div>
+        {% else %}<small class="muted">The clock starts when this task moves to In Progress and stops when it is Completed.</small>{% endif %}
+      </div>
       <div class="side-actions">
         {% if ticket.assigned_to_id != user.pk %}
         <form method="post" action="{% url 'ticket_assign_me' ticket.pk %}" data-shortcut="assign">
@@ -108,7 +117,9 @@
       <p class="eyebrow">Details</p>
       <dl class="props">
         <div><dt><span class="ms">person</span>Assignee</dt><dd><span class="person">{% if ticket.assigned_to %}<span class="avatar sm">{{ ticket.assigned_to|initials }}</span>{% endif %}{{ ticket.assigned_to|display_name }}</span></dd></div>
-        <div><dt><span class="ms">label</span>Area</dt><dd><a href="{% url 'backlog' %}?area={{ ticket.area_id|default:'' }}">{{ ticket.area|default:'Other' }}</a></dd></div>
+        <div><dt><span class="ms">badge</span>Role / team</dt><dd>{% if ticket.team %}<a class="team-chip" style="{{ ticket.team|team_style }}" href="{% url 'backlog' %}?team={{ ticket.team_id }}">{{ ticket.team.name }}</a>{% else %}None{% endif %}</dd></div>
+        <div><dt><span class="ms">label</span>Category</dt><dd>{% if ticket.category %}<a href="{% url 'backlog' %}?category={{ ticket.category_id }}">{{ ticket.category.name }}</a>{% else %}Uncategorized{% endif %}</dd></div>
+        <div><dt><span class="ms">directions_run</span>Sprint</dt><dd>{% if ticket.sprint %}<a href="{% url 'board' %}?sprint={{ ticket.sprint_id }}">{{ ticket.sprint.name }}</a>{% else %}None{% endif %}</dd></div>
         <div><dt><span class="ms">flag</span>Priority</dt><dd>{{ ticket.priority }}</dd></div>
         <div><dt><span class="ms">calendar_today</span>Due date</dt><dd>{% if ticket.due_date %}<span class="due-badge {{ ticket|due_state }}">{{ ticket.due_date|date:'M j, Y' }}</span>{% else %}Not set{% endif %}</dd></div>
         <div><dt><span class="ms">person_add</span>Submitted by</dt><dd>{{ ticket.submitted_by|display_name }}</dd></div>

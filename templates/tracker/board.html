@@ -1,18 +1,37 @@
 {% extends 'base.html' %}
 {% load tracker_tags %}
-{% block title %}Work Board{% endblock %}
+{% block title %}Team Board{% endblock %}
 {% block content %}
 <header class="topbar">
   <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
   <div class="topbar-title">
-    <h1>Work board</h1>
-    <p>Drag cards between columns to update their status.</p>
+    <h1>Team board</h1>
+    <p>{% if sprint_cards %}What the whole team is working on this sprint.{% else %}Everyone's work across all roles.{% endif %} Drag cards to change status.</p>
   </div>
   <div class="topbar-actions">
-    <a class="btn btn-filled" href="{% url 'ticket_create' %}"><span class="ms">add</span><span class="label">New ticket</span></a>
+    <a class="btn btn-outlined" href="{% url 'sprints' %}"><span class="ms">directions_run</span><span class="label">Sprints</span></a>
+    <a class="btn btn-filled" href="{% url 'ticket_create' %}"><span class="ms">add</span><span class="label">New task</span></a>
   </div>
 </header>
 <section class="content">
+  {% for card in sprint_cards %}{% include 'tracker/_sprint_banner.html' %}{% empty %}
+  {% if not nav_active_sprint and not request.GET.sprint %}
+  <section class="card sprint-banner">
+    <div><h2><span class="ms">directions_run</span>No active sprint</h2><p>The board is showing every task. {% if user.is_staff %}Start a sprint to focus the team on a shared goal.{% else %}An admin can start a sprint to focus the board.{% endif %}</p></div>
+    {% if user.is_staff %}<div><a class="btn btn-tonal" href="{% url 'sprints' %}"><span class="ms">add</span>Plan a sprint</a></div>{% endif %}
+  </section>
+  {% endif %}
+  {% endfor %}
+
+  <div class="board-toolbar">
+    <div class="chip-row" role="group" aria-label="Filter by role">
+      <a class="chip {% if not request.GET.team %}selected{% endif %}" href="{% query request.GET team=None %}"><span class="ms">groups</span>Everyone</a>
+      {% for team in teams %}
+      <a class="chip team-filter {% if request.GET.team == team.pk|stringformat:'s' %}selected{% endif %}" style="{{ team|team_style }}" href="{% toggle request.GET 'team' team.pk|stringformat:'s' %}">{{ team.name }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
   {% include 'tracker/_stats.html' %}
   {% include 'tracker/filters.html' %}
   <div class="board" data-board>
@@ -25,10 +44,11 @@
       </header>
       <div class="column-list">
         {% for ticket in column.items %}
-        <article class="ticket prio-{{ ticket.priority }}" draggable="true" data-number="{{ ticket.ticket_number }}" data-current="{{ ticket.status }}" data-move-url="{% url 'ticket_move' ticket.pk %}">
+        <article class="ticket prio-{{ ticket.priority }} {% if ticket.team %}has-team{% endif %}" style="{{ ticket.team|team_style }}" draggable="true" data-number="{{ ticket.ticket_number }}" data-current="{{ ticket.status }}" data-move-url="{% url 'ticket_move' ticket.pk %}">
           <div class="ticket-top">
             <span class="ticket-number">{{ ticket.ticket_number }}</span>
-            <form method="post" action="{% url 'ticket_move' ticket.pk %}" class="ticket-move">
+            {% if ticket.team %}<span class="team-chip" style="{{ ticket.team|team_style }}">{{ ticket.team.name }}</span>{% endif %}
+            <form method="post" action="{% url 'ticket_move' ticket.pk %}" class="ticket-move" style="margin-left:auto">
               {% csrf_token %}
               <input type="hidden" name="next" value="{{ request.get_full_path }}">
               <span class="icon-btn sm" title="Move to..."><span class="ms">swap_horiz</span></span>
@@ -43,15 +63,16 @@
           <div class="ticket-meta">
             <span class="priority-badge {{ ticket.priority|priority_class }}">{{ ticket.priority }}</span>
             {% if ticket.due_date %}<span class="due-badge {{ ticket|due_state }}"><span class="ms">schedule</span>{{ ticket.due_date|date:'M j' }}</span>{% endif %}
-            <span class="tag">{{ ticket.area|default:'Other' }}</span>
+            {% if ticket.category %}<span class="tag">{{ ticket.category.name }}</span>{% endif %}
+            {% include 'tracker/_timer.html' with t=ticket %}
             <span class="avatar sm {% if not ticket.assigned_to %}empty{% endif %}" title="{{ ticket.assigned_to|display_name }}">{% if ticket.assigned_to %}{{ ticket.assigned_to|initials }}{% else %}<span class="ms sm">person</span>{% endif %}</span>
           </div>
         </article>
         {% endfor %}
-        <p class="empty" {% if column.items %}hidden{% endif %}>Drop tickets here</p>
+        <p class="empty" {% if column.items %}hidden{% endif %}>Drop tasks here</p>
       </div>
       {% if column.hidden %}
-      <a class="column-more" href="{% url 'backlog' %}{% query request.GET status=column.value sort='-updated' %}">+{{ column.hidden }} more in backlog</a>
+      <a class="column-more" href="{% url 'backlog' %}{% query request.GET status=column.value sort='-updated' sprint=sprint_param %}">+{{ column.hidden }} more</a>
       {% endif %}
     </section>
     {% endfor %}

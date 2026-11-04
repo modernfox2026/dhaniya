@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load tracker_tags %}
+{% block title %}Roles{% endblock %}
+{% block content %}
+<header class="topbar">
+  <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
+  <div class="topbar-title">
+    <h1>Roles</h1>
+    <p>Roles group people and their categories, for example Developer, Toxicologist, Technical, and Administration.</p>
+  </div>
+  <div class="topbar-actions">
+    <a class="btn btn-filled" href="{% url 'team_create' %}"><span class="ms">add</span><span class="label">New role</span></a>
+  </div>
+</header>
+<section class="content">
+  {% if unassigned %}<section class="card sprint-banner"><div><h2><span class="ms">person_off</span>{{ unassigned }} active user{{ unassigned|pluralize }} without a role</h2><p>Give everyone a role so their tasks and categories default correctly.</p></div><div><a class="btn btn-tonal" href="{% url 'users' %}?team=none">Assign roles</a></div></section>{% endif %}
+  <div class="card table-card">
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Role</th><th>Members</th><th>Categories</th><th>Open tasks</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody>
+          {% for team in teams %}
+          <tr class="{% if not team.is_active %}inactive{% endif %}">
+            <td><div class="user-cell"><span class="swatch" style="{{ team|team_style }};width:20px;height:20px"></span><div><b>{{ team.name }}</b>{% if team.description %}<small>{{ team.description }}</small>{% endif %}</div></div></td>
+            <td><a class="btn btn-text btn-sm" href="{% url 'users' %}?team={{ team.pk }}">{{ team.member_count }}</a></td>
+            <td><a class="btn btn-text btn-sm" href="{% url 'categories' %}">{{ team.category_count }}</a></td>
+            <td><a class="btn btn-text btn-sm" href="{% url 'backlog' %}?team={{ team.pk }}&open=1">{{ team.open_count }}</a></td>
+            <td>{% if team.is_active %}Active{% else %}<span class="due-badge">Hidden</span>{% endif %}</td>
+            <td><div class="row-actions">
+              <a class="icon-btn" href="{% url 'user_create' %}?team={{ team.pk }}" title="Add a person to this role" aria-label="Add person"><span class="ms">person_add</span></a>
+              <a class="icon-btn" href="{% url 'team_edit' team.pk %}" title="Edit role" aria-label="Edit {{ team.name }}"><span class="ms">edit</span></a>
+            </div></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6"><div class="empty-state"><span class="ms">badge</span><b>No roles yet</b><span>Run <code>python manage.py seed_tracker</code> or add one.</span></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 {% load tracker_tags %}
-{% block title %}Backlog{% endblock %}
+{% block title %}All Tasks{% endblock %}
 {% block content %}
 <header class="topbar">
   <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
   <div class="topbar-title">
-    <h1>Backlog</h1>
-    <p>Every ticket across all workflow stages. Select rows to update them in bulk.</p>
+    <h1>All tasks</h1>
+    <p>Every task across all roles and sprints. Select rows to update them in bulk or plan them into a sprint.</p>
   </div>
   <div class="topbar-actions">
     <a class="btn btn-outlined" href="{% url 'backlog_export' %}{% query request.GET %}" title="Download the filtered list as CSV"><span class="ms">download</span><span class="label">Export CSV</span></a>
-    <a class="btn btn-filled" href="{% url 'ticket_create' %}"><span class="ms">add</span><span class="label">New ticket</span></a>
+    <a class="btn btn-filled" href="{% url 'ticket_create' %}"><span class="ms">add</span><span class="label">New task</span></a>
   </div>
 </header>
 <section class="content">
@@ -25,7 +25,8 @@
       <select name="status" aria-label="Set status"><option value="">Keep status</option>{% for value,label in statuses %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
       <select name="priority" aria-label="Set priority"><option value="">Keep priority</option>{% for value,label in priorities %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
       <select name="assigned_to" aria-label="Set assignee"><option value="">Keep assignee</option><option value="none">Unassign</option>{% for person in bulk_users %}<option value="{{ person.pk }}">{{ person|display_name }}</option>{% endfor %}</select>
-      <select name="area" aria-label="Set area"><option value="">Keep area</option>{% for item in areas %}<option value="{{ item.pk }}">{{ item.name }}</option>{% endfor %}</select>
+      <select name="sprint" aria-label="Set sprint"><option value="">Keep sprint</option><option value="none">Remove from sprint</option>{% for item in sprints %}<option value="{{ item.pk }}">{{ item.name }}</option>{% endfor %}</select>
+      <select name="category" aria-label="Set category"><option value="">Keep category</option>{% regroup categories by team as cat_groups %}{% for group in cat_groups %}<optgroup label="{{ group.grouper|default:'Shared' }}">{% for item in group.list %}<option value="{{ item.pk }}">{{ item.name }}</option>{% endfor %}</optgroup>{% endfor %}</select>
       <button class="btn btn-filled btn-sm"><span class="ms">check</span>Apply</button>
       <button type="button" class="btn btn-text btn-sm" data-clear-selection>Cancel</button>
     </div>
@@ -44,16 +45,19 @@
           <tr>
             <td class="check-cell"><input type="checkbox" class="check" name="tickets" value="{{ ticket.pk }}" aria-label="Select {{ ticket.ticket_number }}"></td>
             <td class="mono"><a href="{% url 'ticket_detail' ticket.pk %}">{{ ticket.ticket_number }}</a></td>
-            <td class="title-cell"><a href="{% url 'ticket_detail' ticket.pk %}"><b>{{ ticket.title }}</b></a><small>{{ ticket.area|default:'Other' }} · submitted by {{ ticket.submitted_by|display_name }}</small></td>
+            <td class="title-cell"><a href="{% url 'ticket_detail' ticket.pk %}"><b>{{ ticket.title }}</b></a><small>submitted by {{ ticket.submitted_by|display_name }}</small></td>
             <td><span class="status-badge {{ ticket.status|status_class }}">{{ ticket.get_status_display }}</span></td>
             <td><span class="priority-badge {{ ticket.priority|priority_class }}">{{ ticket.priority }}</span></td>
-            <td>{{ ticket.area|default:'Other' }}</td>
+            <td>{% if ticket.team %}<span class="team-chip" style="{{ ticket.team|team_style }}">{{ ticket.team.name }}</span>{% else %}<span class="muted">None</span>{% endif %}</td>
+            <td>{{ ticket.category.name|default:'' }}</td>
+            <td>{% if ticket.sprint %}<a href="{% url 'board' %}?sprint={{ ticket.sprint_id }}">{{ ticket.sprint.name }}</a>{% else %}<span class="muted">None</span>{% endif %}</td>
             <td><span class="person"><span class="avatar sm {% if not ticket.assigned_to %}empty{% endif %}">{% if ticket.assigned_to %}{{ ticket.assigned_to|initials }}{% else %}<span class="ms sm">person</span>{% endif %}</span>{{ ticket.assigned_to|display_name }}</span></td>
             <td>{% if ticket.due_date %}<span class="due-badge {{ ticket|due_state }}">{{ ticket.due_date|date:'M j, Y' }}</span>{% else %}<span class="muted">None</span>{% endif %}</td>
+            <td>{% include 'tracker/_timer.html' with t=ticket %}</td>
             <td class="muted" title="{{ ticket.updated_at }}">{{ ticket.updated_at|timesince }} ago</td>
           </tr>
           {% empty %}
-          <tr><td colspan="9"><div class="empty-state"><span class="ms">search</span><b>No tickets match these filters</b><span>Try clearing a filter or searching for something else.</span></div></td></tr>
+          <tr><td colspan="12"><div class="empty-state"><span class="ms">search</span><b>No tasks match these filters</b><span>Try clearing a filter or searching for something else.</span></div></td></tr>
           {% endfor %}
         </tbody>
       </table>

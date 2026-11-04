@@ -6,7 +6,7 @@
   <a class="icon-btn" href="{% if ticket %}{% url 'ticket_detail' ticket.pk %}{% else %}{% url 'backlog' %}{% endif %}" aria-label="Back"><span class="ms">arrow_back</span></a>
   <div class="topbar-title">
     <h1>{{ title }}</h1>
-    <p>Record implementation work, ownership, priority, and due date.</p>
+    <p>Describe the work, who owns it, and which sprint it belongs to. The clock starts when it moves to In Progress.</p>
   </div>
 </header>
 <section class="content">
@@ -18,13 +18,15 @@
       {% include 'tracker/_field.html' with field=form.description extra_class='wide' %}
       {% if form.status %}{% include 'tracker/_field.html' with field=form.status %}{% endif %}
       {% include 'tracker/_field.html' with field=form.priority %}
-      {% include 'tracker/_field.html' with field=form.area %}
+      {% include 'tracker/_field.html' with field=form.team %}
+      {% include 'tracker/_field.html' with field=form.category %}
+      {% include 'tracker/_field.html' with field=form.sprint %}
       {% include 'tracker/_field.html' with field=form.assigned_to %}
       {% include 'tracker/_field.html' with field=form.due_date %}
     </div>
     <div class="actions">
-      <button class="btn btn-filled"><span class="ms">check</span>Save ticket</button>
-      {% if creating %}<button class="btn btn-tonal" name="add_another" value="1" title="Keeps the area and priority for the next ticket"><span class="ms">add</span>Save and add another</button>{% endif %}
+      <button class="btn btn-filled"><span class="ms">check</span>Save task</button>
+      {% if creating %}<button class="btn btn-tonal" name="add_another" value="1" title="Keeps the role, category, sprint, and priority for the next task"><span class="ms">add</span>Save and add another</button>{% endif %}
       <span class="spacer"></span>
       <span class="muted"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> saves from the description</span>
       <a class="btn btn-text" href="{% if ticket %}{% url 'ticket_detail' ticket.pk %}{% else %}{% url 'backlog' %}{% endif %}">Cancel</a>

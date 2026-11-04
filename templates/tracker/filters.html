@@ -8,7 +8,7 @@
     <label class="search-field">
       <span class="ms">search</span>
       <span class="sr-only">Search</span>
-      <input name="q" value="{{ request.GET.q }}" placeholder="Search title, description, people, or ACMI number" data-search autocomplete="off">
+      <input name="q" value="{{ request.GET.q }}" placeholder="Search tasks, people, categories, or task number" data-search autocomplete="off">
       <kbd>/</kbd>
     </label>
     <select name="status" data-autosubmit aria-label="Status">
@@ -19,9 +19,24 @@
       <option value="">All priorities</option>
       {% for value,label in priorities %}<option value="{{ value }}" {% if request.GET.priority == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
     </select>
-    <select name="area" data-autosubmit aria-label="Area">
-      <option value="">All areas</option>
-      {% for item in areas %}<option value="{{ item.pk }}" {% if request.GET.area == item.pk|stringformat:'s' %}selected{% endif %}>{{ item.name }}</option>{% endfor %}
+    <select name="team" data-autosubmit aria-label="Role / team">
+      <option value="">All roles</option>
+      {% if my_team %}<option value="mine" {% if request.GET.team == 'mine' %}selected{% endif %}>My team ({{ my_team.name }})</option>{% endif %}
+      {% for item in teams %}<option value="{{ item.pk }}" {% if request.GET.team == item.pk|stringformat:'s' %}selected{% endif %}>{{ item.name }}</option>{% endfor %}
+      <option value="none" {% if request.GET.team == 'none' %}selected{% endif %}>No team</option>
+    </select>
+    <select name="category" data-autosubmit aria-label="Category">
+      <option value="">All categories</option>
+      {% regroup categories by team as cat_groups %}
+      {% for group in cat_groups %}<optgroup label="{{ group.grouper|default:'Shared' }}">{% for item in group.list %}<option value="{{ item.pk }}" {% if request.GET.category == item.pk|stringformat:'s' %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</optgroup>{% endfor %}
+    </select>
+    <select name="sprint" data-autosubmit aria-label="Sprint">
+      {% with current=sprint_param %}
+      <option value="" {% if not current %}selected{% endif %}>Any sprint</option>
+      <option value="active" {% if current == 'active' %}selected{% endif %}>Active sprint</option>
+      {% for item in sprints %}<option value="{{ item.pk }}" {% if current == item.pk|stringformat:'s' %}selected{% endif %}>{{ item.name }}{% if item.state == 'PLANNED' %} (planned){% endif %}</option>{% endfor %}
+      <option value="none" {% if current == 'none' %}selected{% endif %}>Not in a sprint</option>
+      {% endwith %}
     </select>
     <select name="assignee" data-autosubmit aria-label="Assignee">
       <option value="">Any assignee</option>
@@ -37,6 +52,7 @@
   <div class="filter-meta">
     <div class="chip-row">
       <a class="chip {% if request.GET.assignee == 'me' %}selected{% endif %}" href="{% toggle request.GET 'assignee' 'me' %}"><span class="ms">person</span>Mine</a>
+      {% if my_team %}<a class="chip {% if request.GET.team == 'mine' %}selected{% endif %}" href="{% toggle request.GET 'team' 'mine' %}"><span class="ms">badge</span>My team</a>{% endif %}
       <a class="chip {% if request.GET.assignee == 'none' %}selected{% endif %}" href="{% toggle request.GET 'assignee' 'none' %}"><span class="ms">person_off</span>Unassigned</a>
       <a class="chip {% if request.GET.due == 'overdue' %}selected{% endif %}" href="{% toggle request.GET 'due' 'overdue' %}"><span class="ms">event_busy</span>Overdue</a>
       <a class="chip {% if request.GET.due == 'week' %}selected{% endif %}" href="{% toggle request.GET 'due' 'week' %}"><span class="ms">calendar_today</span>Due in 7 days</a>
@@ -44,7 +60,7 @@
       <a class="chip {% if request.GET.open == '1' %}selected{% endif %}" href="{% toggle request.GET 'open' '1' %}"><span class="ms">filter_list</span>Hide completed</a>
     </div>
     <div class="chip-row">
-      <span class="count">Showing <b>{{ filtered_count }}</b> of {{ total_count }} tickets</span>
+      <span class="count">Showing <b>{{ filtered_count }}</b> of {{ total_count }} tasks</span>
       {% if has_filters %}<a class="btn btn-text btn-sm" href="{{ request.path }}{% if sort %}?sort={{ sort }}{% endif %}"><span class="ms">filter_alt_off</span>Clear</a>{% endif %}
       <noscript><button class="btn btn-tonal btn-sm">Apply</button></noscript>
     </div>

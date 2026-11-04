@@ -5,4 +5,5 @@ __pycache__/
 staticfiles/
 *.log
 
-.exampledb.sqlite3
+.example
+db.sqlite3

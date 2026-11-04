@@ -88,7 +88,7 @@
 
   var goPending = false;
   var goTimer;
-  var goRoutes = { b: 'board', l: 'backlog', m: 'my_work', i: 'insights', u: 'users' };
+  var goRoutes = { b: 'board', l: 'backlog', m: 'my_work', s: 'sprints', c: 'categories', i: 'insights', u: 'users', r: 'teams' };
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') document.body.classList.remove('drawer-open');
@@ -107,7 +107,6 @@
         if (target) { e.preventDefault(); target.focus(); target.select(); }
         break;
       case 'n':
-      case 'c':
         target = document.querySelector('[data-route="ticket_create"]');
         if (target) { e.preventDefault(); window.location = target.href; }
         break;
@@ -166,6 +165,45 @@
     });
   });
 
+  /* ------------------------------------------------------------ work clocks */
+
+  function formatDuration(seconds) {
+    var minutes = Math.floor(seconds / 60);
+    if (minutes < 1) return '<1m';
+    var days = Math.floor(minutes / 1440), hours = Math.floor((minutes % 1440) / 60), mins = minutes % 60;
+    if (days) return hours ? days + 'd ' + hours + 'h' : days + 'd';
+    if (hours) return hours + 'h ' + (mins < 10 ? '0' : '') + mins + 'm';
+    return mins + 'm';
+  }
+  function tickTimers() {
+    var now = Date.now() / 1000;
+    document.querySelectorAll('[data-timer][data-since]').forEach(function (el) {
+      var total = parseInt(el.getAttribute('data-base') || '0', 10) + Math.max(0, now - parseInt(el.getAttribute('data-since'), 10));
+      var text = el.querySelector('[data-timer-text]');
+      if (text) text.textContent = formatDuration(total);
+    });
+  }
+  tickTimers();
+  setInterval(tickTimers, 30000);
+
+  /* Rebuild a board card's clock after a drag, using the server's answer. */
+  function updateCardTimer(card, data) {
+    var meta = card.querySelector('.ticket-meta');
+    var el = card.querySelector('[data-timer]');
+    if (!data.running && !data.elapsed) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement('span');
+      el.setAttribute('data-timer', '');
+      el.innerHTML = '<span class="ms">timer</span><span data-timer-text></span>';
+      var avatar = meta.querySelector('.avatar');
+      meta.insertBefore(el, avatar);
+    }
+    el.className = 'timer' + (data.running ? ' running' : '');
+    el.setAttribute('data-base', data.elapsed);
+    if (data.running) el.setAttribute('data-since', Math.floor(Date.now() / 1000)); else el.removeAttribute('data-since');
+    el.querySelector('[data-timer-text]').textContent = formatDuration(data.elapsed);
+  }
+
   /* ------------------------------------------------------------ board drag and drop */
 
   var board = document.querySelector('[data-board]');
@@ -206,6 +244,7 @@
         card.setAttribute('data-current', data.status);
         var select = card.querySelector('select[name="status"]');
         if (select) select.value = data.status;
+        updateCardTimer(card, data);
         snack(data.ticket + ' moved to ' + data.label);
       }).catch(function () {
         from.insertBefore(card, next);

@@ -6,7 +6,7 @@
   <button type="button" class="icon-btn menu-btn" data-drawer-toggle aria-label="Open navigation"><span class="ms">menu</span></button>
   <div class="topbar-title">
     <h1>Insights</h1>
-    <p>Progress of the FoxPro to .NET migration across areas and people.</p>
+    <p>Progress across roles, categories, and people.</p>
   </div>
   <div class="topbar-actions">
     <a class="btn btn-outlined" href="{% url 'backlog_export' %}"><span class="ms">download</span><span class="label">Export all</span></a>
@@ -17,7 +17,7 @@
     <a class="stat-card" href="{% url 'backlog' %}?open=1"><span class="stat-icon status-progress"><span class="ms">inbox</span></span><div><span class="label">Open tickets</span><b>{{ open_count }}</b></div></a>
     <a class="stat-card" href="{% url 'backlog' %}?due=overdue"><span class="stat-icon {% if overdue %}priority-high{% else %}status-backlog{% endif %}"><span class="ms">event_busy</span></span><div><span class="label">Overdue</span><b>{{ overdue }}</b></div></a>
     <a class="stat-card" href="{% url 'backlog' %}?assignee=none&open=1"><span class="stat-icon status-testing"><span class="ms">person_off</span></span><div><span class="label">Unassigned</span><b>{{ unassigned }}</b></div></a>
-    <div class="stat-card"><span class="stat-icon status-completed"><span class="ms">timer</span></span><div><span class="label">Avg. days to complete (90d)</span><b>{{ cycle_time|default:'None' }}</b></div></div>
+    <div class="stat-card"><span class="stat-icon status-completed"><span class="ms">timer</span></span><div><span class="label">Avg. time per task (90d)</span><b>{{ avg_worked|duration|default:'None' }}</b></div></div>
   </div>
 
   <div class="two-col">
@@ -35,18 +35,23 @@
           {% endfor %}
         </div>
         <div class="chart-labels">{% for w in weeks %}<span>{{ w.start|date:'n/j' }}</span>{% endfor %}</div>
-        <div class="card-pad muted" style="padding-top:0">{{ completed_recent }} ticket{{ completed_recent|pluralize }} completed in the last 4 weeks. Peak week: {{ peak }}.</div>
+        <div class="card-pad muted" style="padding-top:0">{{ completed_recent }} task{{ completed_recent|pluralize }} completed in the last 4 weeks. Peak week: {{ peak }}.</div>
       </section>
 
+      {% for title, icon, rows in breakdowns %}
       <section class="card">
-        <div class="card-head"><h2><span class="ms">label</span>Progress by area</h2><small>Share of tickets in each stage</small></div>
-        {% for row in area_rows %}
+        <div class="card-head"><h2><span class="ms">{{ icon }}</span>{{ title }}</h2><small>Share of tasks in each stage · avg. time to complete</small></div>
+        {% for row in rows %}
         <div class="area-row">
-          <header><a href="{% url 'backlog' %}{% if row.id %}?area={{ row.id }}{% endif %}"><b>{{ row.name }}</b></a><small>{{ row.done_pct }}% complete · {{ row.total }} ticket{{ row.total|pluralize }}</small></header>
+          <header>
+            <a href="{% url 'backlog' %}{% if row.id %}?{{ row.key }}={{ row.id }}{% endif %}">{% if row.color %}<span class="swatch" style="--team: {{ row.color }}"></span> {% endif %}<b>{{ row.name }}</b></a>
+            <small>{{ row.done_pct }}% complete · {{ row.total }} task{{ row.total|pluralize }}{% if row.avg_seconds %} · avg {{ row.avg_seconds|duration }}{% endif %}</small>
+          </header>
           <div class="stacked">{% for s in row.segments %}{% if s.count %}<span class="{{ s.value }}" style="width:{{ s.pct|stringformat:'.1f' }}%" title="{{ s.label }}: {{ s.count }}"></span>{% endif %}{% endfor %}</div>
         </div>
-        {% empty %}<div class="empty-state"><span class="ms">insights</span><b>No tickets yet</b></div>{% endfor %}
+        {% empty %}<div class="empty-state"><span class="ms">insights</span><b>No tasks yet</b></div>{% endfor %}
       </section>
+      {% endfor %}
     </div>
 
     <div class="stack">
@@ -63,7 +68,7 @@
       </section>
 
       <section class="card">
-        <div class="card-head"><h2><span class="ms">group</span>Workload</h2><small>Open tickets by priority</small></div>
+        <div class="card-head"><h2><span class="ms">group</span>Workload</h2><small>Open tasks by priority</small></div>
         {% for row in people_rows %}
         <div class="area-row">
           <header><b>{{ row.name }}</b><small>{{ row.open }} open{% if row.overdue %} · <span style="color:var(--error)">{{ row.overdue }} overdue</span>{% endif %}</small></header>
